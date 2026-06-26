@@ -1,0 +1,68 @@
+---
+- name: Check for Docker
+  command: which docker
+  register: docker_check
+  failed_when: false
+  changed_when: false
+
+- name: Check docker version (detect Podman alias)
+  command: docker --version
+  register: docker_version
+  when: docker_check.rc == 0
+  failed_when: false
+  changed_when: false
+
+- name: Check for Podman
+  command: which podman
+  register: podman_check
+  failed_when: false
+  changed_when: false
+
+- name: Check if running inside a container
+  stat:
+    path: /.dockerenv
+  register: docker_env_marker
+
+- name: Check if running inside a Podman container
+  stat:
+    path: /run/.containerenv
+  register: podman_env_marker
+
+- name: Decide whether container cleanup should skip nested Podman prune
+  set_fact:
+    container_cleanup_skip_podman_prune: >-
+      {{ docker_env_marker.stat.exists or podman_env_marker.stat.exists }}
+
+- name: Prune Docker system
+  command: docker system prune --all --volumes --force
+  when: docker_check.rc == 0 and 'Podman' not in (docker_version.stdout | default(''))
+  register: docker_prune_result
+  changed_when: "'Total reclaimed space' in docker_prune_result.stdout"
+
+- name: Prune Podman system
+  command: podman system prune --all --volumes --force
+  when:
+    - podman_check.rc == 0
+    - not container_cleanup_skip_podman_prune
+  register: podman_prune_result
+  changed_when: podman_prune_result.stdout != ""
+
+- name: Explain skipped Podman cleanup in nested containers
+  debug:
+    msg: "Skipping podman system prune inside a nested container environment."
+  when:
+    - podman_check.rc == 0
+    - container_cleanup_skip_podman_prune
+
+- name: Show Docker cleanup results
+  debug:
+    msg: "{{ docker_prune_result.stdout_lines }}"
+  when: docker_check.rc == 0 and docker_prune_result.stdout != ""
+
+- name: Show Podman cleanup results
+  debug:
+    msg: "{{ podman_prune_result.stdout_lines }}"
+  when:
+    - podman_check.rc == 0
+    - not container_cleanup_skip_podman_prune
+    - podman_prune_result.stdout != ""

@@ -1,0 +1,6 @@
+---
+pnpm_version: "11.4.0"
+pnpm_install_url: "https://get.pnpm.io/install.sh"
+pnpm_home: "{{ ansible_facts['env'].HOME }}/.local/share/pnpm"
+pnpm_executable: "{{ pnpm_home }}/bin/pnpm"
+pnpm_global_packages: []

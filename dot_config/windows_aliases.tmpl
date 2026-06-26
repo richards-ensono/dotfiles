@@ -1,0 +1,7 @@
+{{ if eq .chezmoi.os "linux" }}
+{{   if (.chezmoi.kernel.osrelease | lower | contains "microsoft") }}
+{{     if stat ("/mnt/c/Users/rslater/AppData")}}
+alias code="/mnt/c/Users/rslater/AppData/Local/Programs/Microsoft\ VS\ Code/bin/code"
+{{     end }}
+{{   end }}
+{{ end }}

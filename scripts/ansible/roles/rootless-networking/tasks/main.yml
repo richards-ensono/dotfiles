@@ -1,0 +1,103 @@
+---
+- name: Check if systemd is running
+  command: systemctl is-system-running
+  register: systemd_check
+  changed_when: false
+  failed_when: false
+
+- name: Set systemd availability fact
+  set_fact:
+    systemd_available: "{{ systemd_check.rc == 0 or systemd_check.stdout in ['running', 'degraded', 'starting'] }}"
+
+- name: Skip role if systemd is not available
+  debug:
+    msg: "Skipping rootless-networking role - systemd is not available (container environment)"
+  when: not systemd_available
+
+- name: Ensure required dependencies are installed (Debian/Ubuntu)
+  apt:
+    name:
+      - passt
+      - slirp4netns
+      - dbus-user-session
+    state: present
+  when:
+    - systemd_available
+    - ansible_facts['os_family'] == 'Debian'
+  become: true
+
+- name: Ensure required dependencies are installed (CentOS)
+  yum:
+    name:
+      - passt
+      - slirp4netns
+    state: present
+  when:
+    - systemd_available
+    - ansible_facts['os_family'] == 'RedHat'
+  become: true
+
+- name: Get current username if not available in environment
+  command: whoami
+  register: whoami_result
+  changed_when: false
+  when:
+    - systemd_available
+    - ansible_facts['env'].USER is not defined and ansible_facts['env'].SUDO_USER is not defined
+
+- name: Set facts for the real user and UID
+  set_fact:
+    real_user: >-
+      {{ ansible_facts['env'].SUDO_USER | default(ansible_facts['env'].USER) |
+      default(whoami_result.stdout | default('root')) }}
+  when: systemd_available
+
+- name: Get real user UID
+  command: "id -u {{ real_user }}"
+  register: user_uid_result
+  changed_when: false
+  when: systemd_available
+
+- name: Set real user UID fact
+  set_fact:
+    real_user_uid: "{{ user_uid_result.stdout }}"
+  when: systemd_available
+
+- name: Set the SystemD Runtime Dir
+  set_fact:
+    XDG_RUNTIME_DIR: "/run/user/{{ real_user_uid }}"
+  when: systemd_available
+
+- name: Write Debug Variables
+  debug:
+    msg:
+      - "Real User: {{ real_user }}"
+      - "Real User UID: {{ real_user_uid }}"
+      - "XDG Runtime Dir: {{ XDG_RUNTIME_DIR }}"
+  when: systemd_available
+
+- name: Enable and start podman.socket for {{ real_user }}
+  ansible.builtin.systemd:
+    name: podman.socket
+    enabled: true
+    state: started
+    scope: user
+  environment:
+    XDG_RUNTIME_DIR: "{{ XDG_RUNTIME_DIR }}"
+  when: systemd_available
+
+- name: Check podman socket responds with OK
+  ansible.builtin.command:
+    cmd: >
+      curl --unix-socket /run/user/{{ real_user_uid }}/podman/podman.sock
+      -H 'content-type: application/json' -sf http://localhost/_ping
+  register: podman_ping
+  changed_when: false
+  when: systemd_available
+
+- name: Fail if podman socket does not respond with OK
+  ansible.builtin.fail:
+    msg: "Podman socket did not respond with OK: {{ podman_ping.stdout }}"
+  when:
+    - systemd_available
+    - podman_ping.stdout != 'OK'

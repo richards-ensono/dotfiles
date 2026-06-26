@@ -1,0 +1,14 @@
+---
+extends: relaxed
+
+rules:
+  line-length:
+    max: 160
+  truthy:
+    check-keys: false
+  document-start:
+    level: warning
+  trailing-spaces:
+    level: error
+  comments-indentation:
+    level: warning

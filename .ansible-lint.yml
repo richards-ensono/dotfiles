@@ -1,0 +1,25 @@
+---
+profile: min
+
+exclude_paths:
+  - scripts/ansible/roles/_template/
+  - scripts/ansible/roles/*/meta/main.yml
+
+skip_list:
+  - command-instead-of-module
+  - fqcn[action]
+  - fqcn[action-core]
+  - ignore-errors
+  - key-order[task]
+  - latest[git]
+  - meta-no-tags
+  - name[template]
+  - no-changed-when
+  - no-handler
+  - risky-file-permissions
+  - var-naming[no-role-prefix]
+  - var-naming[pattern]
+  - yaml[new-line-at-end-of-file]
+
+warn_list:
+  - yaml[line-length]

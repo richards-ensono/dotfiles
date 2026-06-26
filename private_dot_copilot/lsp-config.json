@@ -1,0 +1,30 @@
+{
+  "lspServers": {
+    "typescript": {
+      "command": "bun",
+      "args": ["x", "typescript-language-server", "--stdio"],
+      "fileExtensions": {
+        ".ts": "typescript",
+        ".tsx": "typescript"
+      }
+    },
+    "dotnet": {
+      "command": "$HOME/.dotnet/tools/csharp-ls",
+      "fileExtensions": {
+        ".cs": "dotnet"
+      }
+    },
+    "rust": {
+      "command": "rust-analyzer",
+      "fileExtensions": {
+        ".rs": "rust"
+      }
+    },
+    "nx": {
+      "command": "nxls",
+      "fileExtensions": {
+        "nx.json": "nx"
+      }
+    }
+  }
+}

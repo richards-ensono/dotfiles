@@ -1,0 +1,87 @@
+# shellcheck shell=bash
+# shell_common - Shared configuration for bash and zsh
+# This file should be sourced by both .bashrc and .zshrc
+
+# =============================================================================
+# Editor Configuration
+# =============================================================================
+if command -v nvim &> /dev/null; then
+  alias vi='nvim'
+  alias vim='nvim'
+  EDITOR=$(command -v nvim)
+  export EDITOR
+else
+  export EDITOR=vi
+fi
+export VISUAL=$EDITOR
+
+# =============================================================================
+# PATH Additions
+# =============================================================================
+# User's private bin directories
+[ -d "$HOME/bin" ] && export PATH="$HOME/bin:$PATH"
+[ -d "$HOME/.local/bin" ] && export PATH="$HOME/.local/bin:$PATH"
+
+# System paths
+[ -d "/usr/local/bin" ] && export PATH="/usr/local/bin:$PATH"
+
+# NeoVim (manual install location)
+[ -d "/opt/nvim-linux64/bin" ] && export PATH="/opt/nvim-linux64/bin:$PATH"
+
+# Snap packages
+[ -d "/snap/bin" ] && export PATH="/snap/bin:$PATH"
+
+# .NET Core SDK
+[ -d "$HOME/.dotnet" ] && export PATH="$HOME/.dotnet:$PATH"
+[ -d "$HOME/.dotnet" ] && export DOTNET_ROOT="$HOME/.dotnet"
+
+# Go
+[ -f "/usr/local/go/bin/go" ] && export PATH="$PATH:/usr/local/go/bin"
+
+# =============================================================================
+# Cargo (Rust)
+# =============================================================================
+# shellcheck source=/dev/null
+[ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
+
+# =============================================================================
+# pnpm
+# =============================================================================
+if [ -d "$HOME/.local/share/pnpm" ]; then
+  export PNPM_HOME="$HOME/.local/share/pnpm"
+  case ":$PATH:" in
+    *":$PNPM_HOME:"*) ;;
+    *) export PATH="$PNPM_HOME:$PATH" ;;
+  esac
+  if [ -d "$PNPM_HOME/bin" ]; then
+    case ":$PATH:" in
+      *":$PNPM_HOME/bin:"*) ;;
+      *) export PATH="$PNPM_HOME/bin:$PATH" ;;
+    esac
+  fi
+fi
+
+# =============================================================================
+# .NET
+# =============================================================================
+if command -v dotnet &> /dev/null; then
+  dotnet_path=$(readlink -f "$(command -v dotnet)")
+  DOTNET_ROOT=$(dirname "$dotnet_path")
+  export DOTNET_ROOT
+fi
+
+# =============================================================================
+# SDKMAN (Java/Kotlin/Gradle/etc)
+# =============================================================================
+export SDKMAN_DIR="$HOME/.sdkman"
+# shellcheck source=/dev/null
+[ -s "$SDKMAN_DIR/bin/sdkman-init.sh" ] && source "$SDKMAN_DIR/bin/sdkman-init.sh"
+
+# =============================================================================
+# Podman
+# =============================================================================
+if [ -f "/usr/bin/podman" ]; then
+  podman_socket_path=$(podman info --format '{{.Host.RemoteSocket.Path}}')
+  DOCKER_HOST="unix://${podman_socket_path}"
+  export DOCKER_HOST
+fi

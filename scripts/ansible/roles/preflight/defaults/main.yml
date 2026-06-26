@@ -1,0 +1,13 @@
+---
+preflight_supported_os_families:
+  - Debian
+
+preflight_required_package_manager: apt
+
+preflight_required_commands:
+  - git
+  - curl
+  - python3
+
+preflight_disk_check_path: /tmp
+preflight_min_disk_kb: 2097152

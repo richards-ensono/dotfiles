@@ -1,0 +1,14 @@
+---
+galaxy_info:
+  author: Richard Slater
+  description: "Shared preflight checks for supported hosts and required tooling."
+  license: "MIT"
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - all
+    - name: Debian
+      versions:
+        - all
+dependencies: []

@@ -1,0 +1,82 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Test Dotfiles in Docker (Debian)",
+      "type": "shell",
+      "command": "docker run --rm -it -v \"${workspaceFolder}:/dotfiles:ro\" -e CHEZMOI_EMAIL=test@example.com -e TERM=xterm-256color docker.io/library/debian:bookworm bash -c 'apt-get update && apt-get install -y curl git zsh lsb-release && mkdir -p /root/.local/bin && curl -fsSL https://github.com/JanDeDobbeleer/oh-my-posh/releases/latest/download/posh-linux-amd64 -o /root/.local/bin/oh-my-posh && chmod +x /root/.local/bin/oh-my-posh && sh -c \"$(curl -fsLS get.chezmoi.io)\" -- init --apply --source=/dotfiles; exec zsh'",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "group": "test"
+    },
+    {
+      "label": "Test Dotfiles in Docker (Ubuntu)",
+      "type": "shell",
+      "command": "docker run --rm -it -v \"${workspaceFolder}:/dotfiles:ro\" -e CHEZMOI_EMAIL=test@example.com -e TERM=xterm-256color docker.io/library/ubuntu:24.04 bash -c 'apt-get update && apt-get install -y curl git zsh lsb-release && mkdir -p /root/.local/bin && curl -fsSL https://github.com/JanDeDobbeleer/oh-my-posh/releases/latest/download/posh-linux-amd64 -o /root/.local/bin/oh-my-posh && chmod +x /root/.local/bin/oh-my-posh && sh -c \"$(curl -fsLS get.chezmoi.io)\" -- init --apply --source=/dotfiles; exec zsh'",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "group": "test"
+    },
+    {
+      "label": "Test Dotfiles - Dry Run (Docker)",
+      "type": "shell",
+      "command": "docker run --rm -v \"${workspaceFolder}:/dotfiles:ro\" -e CHEZMOI_EMAIL=test@example.com docker.io/library/debian:bookworm bash /dotfiles/.vscode/test-dotfiles.sh",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "group": "test"
+    },
+    {
+      "label": "Test Ansible Playbook - Syntax Check (Docker)",
+      "type": "shell",
+      "command": "docker run --rm -v \"${workspaceFolder}:/dotfiles:ro\" docker.io/library/debian:bookworm bash -c 'apt-get update -qq && apt-get install -y -qq ansible > /dev/null && cd /dotfiles/scripts/ansible && ansible-galaxy install -r requirements.yml && ansible-playbook playbook.yml -i inventory/hosts.yml --syntax-check'",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "group": "test"
+    },
+    {
+      "label": "Test Ansible Playbook - Full Apply (Docker)",
+      "type": "shell",
+      "command": "docker run --rm -it -v \"${workspaceFolder}:/dotfiles:ro\" docker.io/library/debian:bookworm bash -c 'apt-get update && apt-get install -y ansible python3-apt sudo && cd /dotfiles/scripts/ansible && ansible-galaxy install -r requirements.yml && ansible-playbook playbook.yml -i inventory/hosts.yml -c local; exec bash'",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "group": "test"
+    },
+    {
+      "label": "Test Ansible Playbook - Idempotence (Docker)",
+      "type": "shell",
+      "command": "docker run --rm -v \"${workspaceFolder}:/dotfiles:ro\" docker.io/library/debian:bookworm bash /dotfiles/.vscode/test-ansible-idempotence.sh",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "group": "test"
+    },
+    {
+      "label": "Shell Lint (shellcheck)",
+      "type": "shell",
+      "command": "docker run --rm -v \"${workspaceFolder}:/dotfiles:ro\" docker.io/library/debian:bookworm bash -lc 'apt-get update -qq >/dev/null && apt-get install -y -qq shellcheck >/dev/null && shellcheck /dotfiles/dot_bashrc /dotfiles/dot_profile /dotfiles/dot_config/shell_common /dotfiles/.vscode/test-dotfiles.sh /dotfiles/.vscode/test-ansible-idempotence.sh /dotfiles/scripts/debian/*.sh /dotfiles/scripts/ansible/*.sh'",
+      "problemMatcher": "$shellcheck",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "group": "test"
+    }
+  ]
+}

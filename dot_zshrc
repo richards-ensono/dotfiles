@@ -1,0 +1,169 @@
+setopt histignorealldups sharehistory
+
+# Use vi bindings, but restore history search
+bindkey -v
+bindkey ^R history-incremental-search-backward
+bindkey ^S history-incremental-search-forward
+
+# Keep 1000 lines of history within the shell and save it to ~/.zsh_history:
+HISTSIZE=10000
+SAVEHIST=10000
+HISTFILE="$HOME/.cache/.zsh_history"
+
+# Ensure ~/.local/bin is in PATH early (for oh-my-posh and other local tools)
+[ -d "$HOME/.local/bin" ] && export PATH="$HOME/.local/bin:$PATH"
+
+# Source shared shell configuration (editor, PATH, cargo, pnpm, SDKMAN, etc.)
+[ -f "$HOME/.config/shell_common" ] && source "$HOME/.config/shell_common"
+
+# convenience variables
+export DISTRO_RELEASE=$(lsb_release --short --release 2>/dev/null | tr -d \" || echo "unknown")
+
+# Use modern completion system
+autoload -Uz compinit
+compinit
+
+# plugins
+plugins=(
+  git
+  vi-mode
+  zsh-autosuggestions
+)
+
+# zstyle
+zstyle ':completion:*' auto-description 'specify: %d'
+zstyle ':completion:*' completer _expand _complete _correct _approximate
+zstyle ':completion:*' format 'Completing %d'
+zstyle ':completion:*' group-name ''
+zstyle ':completion:*' menu select=2
+eval "$(dircolors -b)"
+zstyle ':completion:*:default' list-colors ${(s.:.)LS_COLORS}
+zstyle ':completion:*' list-colors ''
+zstyle ':completion:*' list-prompt %SAt %p: Hit TAB for more, or the character to insert%s
+zstyle ':completion:*' matcher-list '' 'm:{a-z}={A-Z}' 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=* l:|=*'
+zstyle ':completion:*' menu select=long
+zstyle ':completion:*' select-prompt %SScrolling active: current selection at %p%s
+zstyle ':completion:*' use-compctl false
+zstyle ':completion:*' verbose true
+zstyle ':completion:*:*:kill:*:processes' list-colors '=(#b) #([0-9]#)*=0=01;31'
+zstyle ':completion:*:kill:*' command 'ps -u $USER -o pid,%cpu,tty,cputime,cmd'
+
+# Aliases
+[ -f "$HOME/.config/zsh_aliases" ] && source "$HOME/.config/zsh_aliases"
+[ -f "$HOME/.config/windows_aliases" ] && source "$HOME/.config/windows_aliases"
+
+# zsh Syntax Highlighting
+[ -f /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ] && source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+
+# Fuzzy finder
+if command -v fzf &> /dev/null; then
+  source "$HOME/.config/.fzf.zsh"
+fi
+
+# zoxide
+if command -v zoxide &> /dev/null; then
+  eval "$(zoxide init zsh --cmd cd)"
+fi
+
+# chezmoi
+if [ -f "$HOME/.local/chezmoi" ]; then
+  chezmoi update
+  chezmoi apply
+fi
+
+# keybinds
+[ -f "$HOME/.config/zsh_keybinds" ] && source "$HOME/.config/zsh_keybinds"
+
+# oh my posh
+if command -v oh-my-posh &> /dev/null; then
+  if [ -f "$HOME/.config/oh-my-posh/cloud-native-tokyo-night.omp.json" ]; then
+    eval "$(oh-my-posh init zsh --config $HOME/.config/oh-my-posh/cloud-native-tokyo-night.omp.json)"
+  else
+    eval "$(oh-my-posh init zsh --config 'https://raw.githubusercontent.com/richards-ensono/dotfiles/master/dot_config/oh-my-posh/cloud-native-tokyo-night.omp.json')"
+  fi
+fi
+
+# Load nvm from either $HOME/.nvm or $HOME/.config/nvm
+if [ -f "$HOME/.nvm/nvm.sh" ]; then
+  export NVM_DIR="$HOME/.nvm"
+elif [ -f "$HOME/.config/nvm/nvm.sh" ]; then
+  export NVM_DIR="$HOME/.config/nvm"
+else
+  NVM_DIR=""
+fi
+
+if [ -n "$NVM_DIR" ] && [ -f "$NVM_DIR/nvm.sh" ]; then
+  chmod +x "$NVM_DIR/nvm.sh"
+  source "$NVM_DIR/nvm.sh"  # This loads nvm
+
+  autoload -U add-zsh-hook
+  load-nvmrc() {
+    local node_version="$(nvm version)"
+    local nvmrc_path="$(nvm_find_nvmrc)"
+
+    if [ -n "$nvmrc_path" ]; then
+      local nvmrc_node_version=$(nvm version "$(cat "${nvmrc_path}")")
+
+      if [ "$nvmrc_node_version" = "N/A" ]; then
+        nvm install
+      elif [ "$nvmrc_node_version" != "$node_version" ]; then
+        nvm use
+      fi
+    elif [ "$node_version" != "$(nvm version default)" ]; then
+      echo "Reverting to nvm default version"
+      nvm use default
+    fi
+  }
+  add-zsh-hook chpwd load-nvmrc
+  load-nvmrc
+fi
+
+unset __conda_setup
+# <<< conda initialize <<<
+
+# go start
+if command -v go &> /dev/null; then
+  export PATH="$(go env GOPATH)/bin:$PATH"
+fi
+# go end
+
+# taskctl start
+if command -v taskctl &> /dev/null; then
+  . <(taskctl completion zsh)
+fi
+# taskctl end
+
+# eirctl start
+if command -v eirctl &> /dev/null; then
+  . <(eirctl completion zsh)
+fi
+# eirctl end
+
+# VS Code shell integration
+[[ "$TERM_PROGRAM" == "vscode" ]] && . "$(code --locate-shell-integration-path zsh)"
+
+# NVM bash completion (if available)
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+
+# PyEnv
+PYENV_ROOT="$HOME/.pyenv"
+if [ -d "$PYENV_ROOT" ]; then
+  export PYENV_ROOT
+  [[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
+  eval "$(pyenv init - zsh)"
+fi
+
+if command -v uv &> /dev/null; then
+  eval "$(uv generate-shell-completion zsh)"
+fi
+
+if [ -s "$HOME/.bun/_bun" ]; then
+  # bun completions
+  source "$HOME/.bun/_bun"
+
+  # bun
+  export BUN_INSTALL="$HOME/.bun"
+  export PATH="$BUN_INSTALL/bin:$PATH"
+fi
+
+[[ -e "$HOME/.local/lib/oracle-cli/lib/python3.13/site-packages/oci_cli/bin/oci_autocomplete.sh" ]] && source "$HOME/.local/lib/oracle-cli/lib/python3.13/site-packages/oci_cli/bin/oci_autocomplete.sh"

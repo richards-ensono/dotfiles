@@ -1,0 +1,44 @@
+---
+- name: Check if running in WSL
+  command: grep -qi microsoft /proc/version
+  register: wsl_check
+  changed_when: false
+  failed_when: false
+
+- name: WSL configuration block
+  when: wsl_check.rc == 0
+  block:
+    - name: Ensure /etc/wsl.conf exists
+      become: true
+      file:
+        path: /etc/wsl.conf
+        state: touch
+        access_time: preserve
+        modification_time: preserve
+        mode: '0644'
+
+    - name: Ensure /etc/wsl.conf ends with a newline
+      become: true
+      lineinfile:
+        path: /etc/wsl.conf
+        line: ''
+        state: present
+        insertafter: EOF
+
+    - name: Ensure [interop] section exists in /etc/wsl.conf
+      become: true
+      lineinfile:
+        path: /etc/wsl.conf
+        line: '[interop]'
+        state: present
+        insertafter: EOF
+        regexp: '^\[interop\]$'
+
+    - name: Set appendWindowsPath = false in /etc/wsl.conf
+      become: true
+      lineinfile:
+        path: /etc/wsl.conf
+        line: 'appendWindowsPath = false'
+        state: present
+        insertafter: '^\[interop\]$'
+        regexp: '^appendWindowsPath\s*='

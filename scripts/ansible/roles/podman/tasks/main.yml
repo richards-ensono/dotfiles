@@ -1,0 +1,172 @@
+---
+- name: Install system and build dependencies for Podman
+  apt:
+    name:
+      - uidmap
+      - iptables
+      - ca-certificates
+      - curl
+      - fuse-overlayfs
+      - libseccomp2
+      - conmon
+      - catatonit
+      - netavark
+      - aardvark-dns
+      - btrfs-progs
+      - gcc
+      - git
+      - go-md2man
+      - libassuan-dev
+      - libbtrfs-dev
+      - libc6-dev
+      - libdevmapper-dev
+      - libglib2.0-dev
+      - libgpgme-dev
+      - libgpg-error-dev
+      - libprotobuf-dev
+      - libprotobuf-c-dev
+      - libseccomp-dev
+      - libselinux1-dev
+      - libsystemd-dev
+      - make
+      - pkg-config
+      - "{{ podman_package_map[podman_network_handler] }}"
+      - "{{ podman_package_map[podman_runtime] }}"
+    state: present
+    update_cache: true
+
+- name: Create containers configuration directory
+  become: true
+  file:
+    path: /etc/containers
+    state: directory
+    mode: '0755'
+
+- name: Install default policy.json
+  become: true
+  get_url:
+    url: https://raw.githubusercontent.com/containers/image/main/default-policy.json
+    dest: /etc/containers/policy.json
+    mode: '0644'
+
+- name: Install default registries.conf
+  become: true
+  get_url:
+    url: https://raw.githubusercontent.com/containers/image/main/registries.conf
+    dest: /etc/containers/registries.conf
+    mode: '0644'
+
+- name: Check if Podman is already installed and matches version
+  command: podman --version
+  register: podman_current_version
+  failed_when: false
+  changed_when: false
+
+- name: Normalize expected Podman version for runtime checks
+  set_fact:
+    podman_expected_version: "{{ podman_version | regex_replace('^v', '') }}"
+
+- name: Create build directory
+  file:
+    path: "{{ podman_build_dir }}"
+    state: directory
+  when: podman_current_version.rc != 0 or podman_expected_version not in podman_current_version.stdout
+
+- name: Clone Podman repository
+  git:
+    repo: "{{ podman_git_repo }}"
+    dest: "{{ podman_build_dir }}"
+    version: "{{ podman_version }}"
+    depth: 1
+    update: true
+  when: podman_current_version.rc != 0 or podman_expected_version not in podman_current_version.stdout
+
+- name: Build and Install Podman from source
+  become: true
+  shell: |
+    export PATH=$PATH:/usr/local/go/bin
+    make BUILDTAGS="{{ podman_build_tags }}" PREFIX=/usr/local
+    make install PREFIX=/usr/local
+  args:
+    chdir: "{{ podman_build_dir }}"
+    executable: /bin/bash
+  when: podman_current_version.rc != 0 or podman_expected_version not in podman_current_version.stdout
+  register: podman_build_result
+
+- name: Get information for {{ podman_user }}
+  getent:
+    key: "{{ podman_user }}"
+    database: passwd
+
+- name: Set home directory for {{ podman_user }}
+  set_fact:
+    podman_user_home: "{{ getent_passwd[podman_user][4] }}"
+
+- name: Ensure /etc/subuid and /etc/subgid are configured for {{ podman_user }}
+  become: true
+  block:
+    - name: Add user to /etc/subuid
+      lineinfile:
+        path: /etc/subuid
+        regexp: '^{{ podman_user }}:'
+        line: "{{ podman_user }}:100000:65536"
+        create: true
+
+    - name: Add user to /etc/subgid
+      lineinfile:
+        path: /etc/subgid
+        regexp: '^{{ podman_user }}:'
+        line: "{{ podman_user }}:100000:65536"
+        create: true
+
+- name: Check if unprivileged user namespaces sysctl exists
+  stat:
+    path: /proc/sys/kernel/unprivileged_userns_clone
+  register: userns_sysctl_stat
+
+- name: Enable unprivileged user namespaces
+  become: true
+  sysctl:
+    name: kernel.unprivileged_userns_clone
+    value: '1'
+    state: present
+    sysctl_file: /etc/sysctl.d/userns.conf
+  when: userns_sysctl_stat.stat.exists
+
+- name: Create Podman configuration directory
+  file:
+    path: "{{ podman_user_home }}/.config/containers"
+    state: directory
+    owner: "{{ podman_user }}"
+    group: "{{ podman_user }}"
+    mode: '0755'
+
+- name: Configure Podman to use {{ podman_network_handler }} and {{ podman_runtime }}
+  copy:
+    dest: "{{ podman_user_home }}/.config/containers/containers.conf"
+    content: |
+      [containers]
+      netns = "{{ podman_network_handler }}"
+      runtime = "{{ podman_runtime }}"
+    owner: "{{ podman_user }}"
+    group: "{{ podman_user }}"
+    mode: '0644'
+
+- name: Ensure Podman uses iptables firewall on WSL
+  become: true
+  become_user: "{{ podman_user }}"
+  ini_file:
+    path: "{{ podman_user_home }}/.config/containers/containers.conf"
+    section: network
+    option: firewall_driver
+    value: '"iptables"'
+  when: ansible_virtualization_type == "wsl"
+
+- name: Verify Podman installation
+  command: podman --version
+  register: podman_verify
+  changed_when: false
+
+- name: Show Podman version
+  debug:
+    msg: "Podman installed: {{ podman_verify.stdout }}"

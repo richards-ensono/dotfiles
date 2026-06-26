@@ -1,0 +1,130 @@
+---
+- name: Debugging
+  hosts: localhost
+  tasks:
+    - name: Operating System Family
+      ansible.builtin.debug:
+        var: ansible_facts['os_family']
+    - name: Operating System Version
+      ansible.builtin.debug:
+        var: ansible_facts['distribution_version']
+    - name: Debian is > 13
+      ansible.builtin.debug:
+        var: ansible_facts['distribution_version'] is version('13.0', '>=')
+
+- name: Run preflight checks
+  hosts: localhost
+  roles:
+    - preflight
+
+- name: Update Ubuntu/Debian system
+  hosts: localhost
+  become: true
+  tasks:
+    - name: Update and upgrade system with recovery
+      block:
+        - name: Update apt package index
+          apt:
+            update_cache: true
+
+        - name: Upgrade all packages
+          apt:
+            upgrade: full
+
+        - name: Remove unnecessary packages
+          apt:
+            autoremove: true
+            autoclean: true
+
+        - name: Install dependant packages
+          apt:
+            name: "{{ item }}"
+            state: present
+          loop:
+            - ca-certificates
+            - python3-debian
+            - git
+            - wget
+            - curl
+
+      rescue:
+        - name: Remove extra librhash1 that gets picked up incorrectly
+          ansible.builtin.command: sudo dpkg --remove --force-all librhash1
+          ignore_errors: true
+
+        - name: Fix broken apt installs
+          ansible.builtin.command: apt-get install --fix-broken -y
+          register: fix_broken_result
+          ignore_errors: true
+
+        - name: Retry update apt package index
+          apt:
+            update_cache: true
+
+        - name: Retry upgrade all packages
+          apt:
+            upgrade: full
+
+        - name: Retry remove unnecessary packages
+          apt:
+            autoremove: true
+            autoclean: true
+
+- name: Run roles for system setup
+  hosts: localhost
+  become: true
+  roles:
+    - packages
+    - bat
+    - fzf
+    - geerlingguy.go
+    - gh
+    - neovim
+    - oh-my-posh
+    - pwsh
+    - tmux
+    - zsh
+    - wsl
+    - podman
+
+- name: Run roles for user setup
+  hosts: localhost
+  vars:
+    rustup_user: "{{ ansible_facts['user_id'] }}"
+  roles:
+    - rootless-networking
+    - nvm
+    - pnpm
+    - bun
+    - uv
+    - speckit
+    - dotnet
+    - copilot-cli
+
+- name: Update Neovim Plugins (LazyVim)
+  hosts: localhost
+  tasks:
+    - name: Check if nvim is installed
+      command: which nvim
+      register: nvim_check
+      failed_when: false
+      changed_when: false
+
+    - name: Check if LazyVim config is present
+      ansible.builtin.stat:
+        path: "{{ ansible_env.HOME }}/.config/nvim/lazyvim.json"
+      register: lazyvim_config
+
+    - name: Run LazyVim sync
+      command: nvim --headless "+Lazy! sync" +qa
+      when:
+        - nvim_check.rc == 0
+        - lazyvim_config.stat.exists
+      register: lazy_sync
+      changed_when: "'No updates' not in lazy_sync.stdout"
+      failed_when: false
+
+- name: Run roles for user
+  hosts: localhost
+  roles:
+    - container-cleanup

@@ -1,0 +1,15 @@
+---
+galaxy_info:
+  author: Richard Slater
+  description: "Ansible role to install the GitHub CLI (gh) from source."
+  license: "MIT"
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - all
+    - name: Debian
+      versions:
+        - all
+dependencies:
+  - geerlingguy.go

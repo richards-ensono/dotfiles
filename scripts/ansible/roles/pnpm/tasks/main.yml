@@ -1,0 +1,78 @@
+---
+- name: Check installed pnpm version
+  ansible.builtin.command: "{{ pnpm_executable }} --version"
+  register: pnpm_check
+  changed_when: false
+  failed_when: false
+
+- name: Decide whether pnpm should be installed
+  ansible.builtin.set_fact:
+    pnpm_needs_install: >-
+      {{
+        pnpm_check.rc != 0 or
+        pnpm_version not in pnpm_check.stdout
+      }}
+
+- name: Remove existing global pnpm before upgrade
+  ansible.builtin.command:
+    argv:
+      - "{{ pnpm_executable }}"
+      - remove
+      - --global
+      - pnpm
+  environment:
+    PNPM_HOME: "{{ pnpm_home }}"
+    PATH: "{{ pnpm_home }}/bin:{{ pnpm_home }}:{{ ansible_facts.env.PATH }}"
+  when:
+    - pnpm_needs_install
+    - pnpm_check.rc == 0
+  register: pnpm_remove_result
+  changed_when: pnpm_remove_result.rc == 0
+  failed_when: false
+
+- name: Download pnpm installer
+  ansible.builtin.get_url:
+    url: "{{ pnpm_install_url }}"
+    dest: "/tmp/pnpm_install.sh"
+    mode: '0755'
+  when: pnpm_needs_install
+
+- name: Install pnpm
+  ansible.builtin.shell: |
+    set -euo pipefail
+    SHELL="${SHELL:-/bin/bash}" PNPM_HOME="{{ pnpm_home }}" PNPM_VERSION="{{ pnpm_version }}" /tmp/pnpm_install.sh
+  args:
+    executable: /bin/bash
+  when: pnpm_needs_install
+  register: pnpm_install_result
+
+- name: Remove pnpm installer
+  ansible.builtin.file:
+    path: "/tmp/pnpm_install.sh"
+    state: absent
+  when: pnpm_needs_install
+
+- name: Verify pnpm installation
+  ansible.builtin.command: "{{ pnpm_executable }} --version"
+  register: pnpm_verify
+  changed_when: false
+
+- name: Display installed pnpm version
+  ansible.builtin.debug:
+    msg: "pnpm installed successfully: {{ pnpm_verify.stdout }}"
+
+- name: Install global pnpm packages
+  ansible.builtin.command:
+    argv:
+      - "{{ pnpm_executable }}"
+      - install
+      - --global
+      - "{{ item }}"
+  loop: "{{ pnpm_global_packages }}"
+  environment:
+    PNPM_HOME: "{{ pnpm_home }}"
+    PATH: "{{ pnpm_home }}/bin:{{ pnpm_home }}:{{ ansible_facts.env.PATH }}"
+  register: pnpm_global_install_results
+  changed_when: >-
+    'Already up to date' not in pnpm_global_install_results.stdout and
+    'Already up-to-date' not in pnpm_global_install_results.stdout

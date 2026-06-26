@@ -1,0 +1,5 @@
+---
+dotnet_version: "10.0"
+dotnet_sdk_version: "10.0"
+dotnet_install_dir: "/usr/share/dotnet"
+dotnet_install_script_url: "https://dot.net/v1/dotnet-install.sh"

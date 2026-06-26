@@ -1,0 +1,15 @@
+---
+podman_git_repo: "https://github.com/containers/podman.git"
+
+# Package mapping for network handlers and runtimes
+podman_package_map:
+  pasta: "passt"
+  slirp4netns: "slirp4netns"
+  crun: "crun"
+  runc: "runc"
+
+# Build tags as recommended by documentation
+podman_build_tags: "seccomp apparmor"
+
+# User for rootless configuration
+podman_user: "{{ ansible_env.SUDO_USER | default(ansible_user_id) }}"

@@ -1,0 +1,98 @@
+---
+- name: Install dependencies for Neovim build
+  apt:
+    name:
+      - ninja-build
+      - gettext
+      - cmake
+      - unzip
+      - curl
+      - git
+      - build-essential
+      - pkg-config
+      - libtool
+      - automake
+      - g++
+      - libncurses5-dev
+      - libncursesw5-dev
+      - libclang-dev
+    state: present
+    update_cache: true
+
+- name: Install Yarn via apt
+  block:
+    - name: Update apt cache
+      apt:
+        update_cache: true
+
+    - name: Install Yarn
+      apt:
+        name: yarnpkg
+        state: present
+
+- name: Check if Neovim is already installed
+  command: nvim --version
+  register: neovim_installed
+  changed_when: false
+  failed_when: false
+
+- name: Clone Neovim repository
+  git:
+    repo: "{{ nvim_repo }}"
+    dest: "{{ nvim_dest }}"
+    depth: 1
+    update: true
+  register: neovim_git
+
+- name: Decide whether Neovim needs a rebuild
+  set_fact:
+    neovim_needs_build: "{{ neovim_git.changed or neovim_installed.rc != 0 }}"
+
+- name: Clean Neovim build directory if source changed
+  command:
+    cmd: "make distclean"
+    chdir: "{{ nvim_dest }}"
+  when: neovim_git.changed
+  failed_when: false
+
+- name: Build Neovim
+  command:
+    cmd: "make CMAKE_BUILD_TYPE=Release"
+    chdir: "{{ nvim_dest }}"
+  register: neovim_build
+  when: neovim_needs_build
+  failed_when: false
+
+- name: Clean and retry build if failed (stale cache)
+  block:
+    - name: Clean stale build directories
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ nvim_dest }}/.deps"
+        - "{{ nvim_dest }}/build"
+
+    - name: Retry Neovim build
+      command:
+        cmd: "make CMAKE_BUILD_TYPE=Release"
+        chdir: "{{ nvim_dest }}"
+  when:
+    - neovim_needs_build
+    - neovim_build.rc != 0
+
+- name: Install Neovim
+  command:
+    cmd: "make install"
+    chdir: "{{ nvim_dest }}"
+  become: true
+  when: neovim_needs_build
+
+- name: Verify Neovim installation
+  command: "nvim --version"
+  register: nvim_version
+  changed_when: false
+
+- name: Show installed Neovim version
+  debug:
+    msg: "{{ nvim_version.stdout }}"

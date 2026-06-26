@@ -1,0 +1,32 @@
+alias ll="ls -la"
+alias ls="ls --color=auto"
+
+alias vi="nvim"
+alias vim="nvim"
+
+[ -f /usr/local/bin/podman-remote-static-linux_amd64 ] && alias podman='/usr/local/bin/podman-remote-static-linux_amd64'
+
+if command -v podman &> /dev/null; then
+  if ! [ command -v docker ] &> /dev/null; then
+    alias docker="podman"
+  fi
+fi
+
+alias k="kubectl"
+alias g="git"
+alias gp="git pull"
+alias gpu="git push origin HEAD"
+alias gca="git add . && git commit && git push origin HEAD"
+alias dup="docker compose up -d"
+alias dlogs="docker compose logs -f"
+alias ddown="docker compose down"
+alias upd="chezmoi update && chezmoi apply && ~/scripts/ansible/exec.sh"
+
+if command -v batcat &> /dev/null; then
+  alias cat="batcat --paging=never"
+  alias bat="batcat"
+elif command -v bat &> /dev/null; then
+  alias cat="bat --paging=never"
+fi
+
+[ -f "$HOME/.config/windows_aliases" ] && source $HOME/.config/windows_aliases

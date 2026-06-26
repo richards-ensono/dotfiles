@@ -1,0 +1,53 @@
+---
+- name: Assert supported OS family
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['os_family'] in preflight_supported_os_families
+    fail_msg: >-
+      Unsupported OS family {{ ansible_facts['os_family'] }}.
+      Supported families: {{ preflight_supported_os_families | join(', ') }}
+    quiet: true
+
+- name: Assert supported package manager
+  ansible.builtin.assert:
+    that:
+      - ansible_pkg_mgr == preflight_required_package_manager
+    fail_msg: >-
+      Unsupported package manager {{ ansible_pkg_mgr }}.
+      Expected: {{ preflight_required_package_manager }}
+    quiet: true
+
+- name: Check required commands
+  ansible.builtin.shell: command -v {{ item | quote }}
+  args:
+    executable: /bin/bash
+  loop: "{{ preflight_required_commands }}"
+  register: preflight_command_checks
+  changed_when: false
+  failed_when: false
+
+- name: Assert required commands are available
+  ansible.builtin.assert:
+    that:
+      - item.rc == 0
+    fail_msg: "Required command {{ item.item }} is not available on PATH"
+    quiet: true
+  loop: "{{ preflight_command_checks.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: Check free disk space for local builds
+  ansible.builtin.command: df -Pk {{ preflight_disk_check_path }}
+  register: preflight_disk_check
+  changed_when: false
+
+- name: Assert enough disk space for source builds
+  vars:
+    preflight_available_kb: "{{ (preflight_disk_check.stdout_lines[1].split()[3] | int) }}"
+  ansible.builtin.assert:
+    that:
+      - (preflight_available_kb | int) >= (preflight_min_disk_kb | int)
+    fail_msg: >-
+      Only {{ preflight_available_kb }} KB is available on {{ preflight_disk_check_path }}.
+      At least {{ preflight_min_disk_kb }} KB is required for source builds.
+    quiet: true

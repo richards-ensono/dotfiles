@@ -1,0 +1,15 @@
+{{ if eq .chezmoi.os "windows" }}
+[cd]
+    command = "pwsh.exe"
+    args = ["-NoLogo"]
+[interpreters.ps1]
+    command = "pwsh.exe"
+    args = ["-NoLogo"]
+[diff]
+    command = "C:\\Program Files\\Neovim\\bin\\nvim.exe"
+    args = ["-d"]
+{{ end }}
+
+[data]
+    email = richard.slater@ensono.com
+    role = work

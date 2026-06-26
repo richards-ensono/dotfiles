@@ -1,0 +1,80 @@
+---
+- name: Check if uv is already installed
+  command: "{{ uv_install_dir }}/uv --version"
+  register: uv_check
+  failed_when: false
+  changed_when: false
+
+- name: Create temporary directory for uv download
+  tempfile:
+    state: directory
+    suffix: uv_download
+  register: uv_temp_dir
+  when: uv_check.rc != 0 or uv_version not in uv_check.stdout
+
+- name: Ensure uv install directory exists
+  file:
+    path: "{{ uv_install_dir }}"
+    state: directory
+    mode: '0755'
+  when: uv_check.rc != 0 or uv_version not in uv_check.stdout
+
+- name: Download uv tarball
+  get_url:
+    url: "{{ uv_download_url }}"
+    dest: "{{ uv_temp_dir.path }}/uv.tar.gz"
+    checksum: "{{ uv_checksum }}"
+    mode: '0644'
+  when: uv_check.rc != 0 or uv_version not in uv_check.stdout
+
+- name: Extract uv tarball
+  unarchive:
+    src: "{{ uv_temp_dir.path }}/uv.tar.gz"
+    dest: "{{ uv_temp_dir.path }}"
+    remote_src: true
+  when: uv_check.rc != 0 or uv_version not in uv_check.stdout
+
+- name: Install uv binary
+  copy:
+    src: "{{ uv_temp_dir.path }}/uv-{{ uv_platform }}/uv"
+    dest: "{{ uv_install_dir }}/uv"
+    mode: '0755'
+  when: uv_check.rc != 0 or uv_version not in uv_check.stdout
+
+- name: Install uvx binary
+  copy:
+    src: "{{ uv_temp_dir.path }}/uv-{{ uv_platform }}/uvx"
+    dest: "{{ uv_install_dir }}/uvx"
+    mode: '0755'
+  when: uv_check.rc != 0 or uv_version not in uv_check.stdout
+
+- name: Verify uv installation
+  command: "{{ uv_install_dir }}/uv --version"
+  register: uv_verify
+  changed_when: false
+
+- name: Clean up temporary directory
+  file:
+    path: "{{ uv_temp_dir.path }}"
+    state: absent
+  when: uv_temp_dir.path is defined
+
+- name: Show uv version
+  debug:
+    msg: "uv installed: {{ uv_verify.stdout }}"
+
+- name: Get installed uv tools
+  command: "{{ uv_install_dir }}/uv tool list"
+  register: installed_uv_tools
+  changed_when: false
+  failed_when: false
+
+- name: Install uv tools
+  command: "{{ uv_install_dir }}/uv tool install {{ item }}"
+  loop: "{{ uv_tools | default([]) }}"
+  when:
+    - uv_tools is defined
+    - >-
+      (
+        installed_uv_tools.stdout_lines | default([])
+      ) | select('match', '^' ~ item ~ ' ') | list | length == 0

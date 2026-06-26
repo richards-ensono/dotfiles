@@ -1,0 +1,21 @@
+---
+oh_my_posh_bin_path: "/usr/local/bin/oh-my-posh"
+
+# Architecture mapping for Oh My Posh downloads
+oh_my_posh_arch_map:
+  x86_64: "amd64"
+  aarch64: "arm64"
+  riscv64: "riscv64"
+
+oh_my_posh_version: "v29.13.1"
+
+oh_my_posh_checksums:
+  amd64: "sha256:6734935b1476c65d8db6e44d063634c3474311a997d4fd03b8f35d88983ef6b9"
+  # Add other architectures' checksums here when needed
+
+oh_my_posh_arch: "{{ oh_my_posh_arch_map[ansible_architecture] | default('amd64') }}"
+oh_my_posh_checksum: "{{ oh_my_posh_checksums[oh_my_posh_arch] | default(omit) }}"
+oh_my_posh_supported_architectures:
+  - x86_64
+  - aarch64
+  - riscv64

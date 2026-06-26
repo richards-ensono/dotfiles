@@ -1,0 +1,29 @@
+---
+- name: Check installed nvm version
+  ansible.builtin.shell: |
+    . "{{ ansible_facts['env'].HOME }}/.nvm/nvm.sh"
+    nvm --version
+  args:
+    executable: /bin/bash
+  register: nvm_check
+  changed_when: false
+  failed_when: false
+
+- name: Download nvm installer
+  ansible.builtin.get_url:
+    url: "{{ nvm_install_url }}"
+    dest: "/tmp/nvm_install.sh"
+    mode: '0755'
+    checksum: "{{ nvm_install_checksum }}"
+  when: nvm_check.rc != 0 or (nvm_version | regex_replace('^v', '')) not in nvm_check.stdout
+
+- name: Install nvm
+  ansible.builtin.shell: >
+    /tmp/nvm_install.sh
+  when: nvm_check.rc != 0 or (nvm_version | regex_replace('^v', '')) not in nvm_check.stdout
+
+- name: Remove nvm installer
+  ansible.builtin.file:
+    path: "/tmp/nvm_install.sh"
+    state: absent
+  when: nvm_check.rc != 0 or (nvm_version | regex_replace('^v', '')) not in nvm_check.stdout

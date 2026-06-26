@@ -1,0 +1,28 @@
+---
+- name: Check if architecture is supported
+  ansible.builtin.assert:
+    that:
+      - ansible_architecture in oh_my_posh_supported_architectures
+    fail_msg: >-
+      Architecture {{ ansible_architecture }} is not supported for Oh My Posh.
+      Supported: {{ oh_my_posh_supported_architectures | join(', ') }}
+    quiet: true
+
+- name: Ensure dependencies are installed
+  ansible.builtin.apt:
+    name: curl
+    state: present
+  become: true
+
+- name: Download Oh My Posh binary
+  ansible.builtin.get_url:
+    url: "https://github.com/JanDeDobbeleer/oh-my-posh/releases/download/{{ oh_my_posh_version }}/posh-linux-{{ oh_my_posh_arch }}"
+    dest: "{{ oh_my_posh_bin_path }}"
+    mode: '0755'
+    checksum: "{{ oh_my_posh_checksum | default(omit) }}"
+  become: true
+
+- name: Verify Oh My Posh installation
+  ansible.builtin.command: "{{ oh_my_posh_bin_path }} --version"
+  register: oh_my_posh_installed_version
+  changed_when: false

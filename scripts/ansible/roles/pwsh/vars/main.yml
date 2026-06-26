@@ -1,0 +1,10 @@
+---
+# Architecture mapping for PowerShell downloads
+pwsh_arch_map:
+  x86_64: "amd64"
+  aarch64: "arm64"
+
+pwsh_arch: "{{ pwsh_arch_map[ansible_facts['architecture']] | default('amd64') }}"
+pwsh_supported_architectures:
+  - x86_64
+  - aarch64

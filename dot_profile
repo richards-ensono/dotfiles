@@ -1,0 +1,17 @@
+#!/bin/sh
+# shellcheck shell=sh disable=SC1091
+#umask 022
+
+# if running bash
+if [ -n "$BASH_VERSION" ]; then
+  # include .bashrc if it exists
+  if [ -f "$HOME/.bashrc" ]; then
+    . "$HOME/.bashrc"
+  fi
+fi
+
+# Source shared shell configuration (for non-bash login shells)
+# Note: This is skipped if bash already sourced it via .bashrc
+if [ -z "$BASH_VERSION" ]; then
+  [ -f "$HOME/.config/shell_common" ] && . "$HOME/.config/shell_common"
+fi

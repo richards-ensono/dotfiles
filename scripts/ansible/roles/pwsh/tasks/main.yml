@@ -1,0 +1,47 @@
+---
+- name: Check if architecture is supported for PowerShell
+  ansible.builtin.debug:
+    msg: >-
+      Skipping PowerShell installation - architecture {{ ansible_facts['architecture'] }}
+      is not supported. Supported: {{ pwsh_supported_architectures | join(', ') }}
+  when: ansible_facts['architecture'] not in pwsh_supported_architectures
+
+- name: Gather installed PowerShell package facts
+  ansible.builtin.package_facts:
+    manager: auto
+  when: ansible_facts['architecture'] in pwsh_supported_architectures
+
+- name: Record installed PowerShell version
+  ansible.builtin.set_fact:
+    pwsh_installed_version: >-
+      {{
+        (
+          ansible_facts.packages['powershell'] | default([])
+          | map(attribute='version') | list | first | default('')
+        )
+        | regex_search('^[0-9.]+')
+        | default('', true)
+      }}
+  when: ansible_facts['architecture'] in pwsh_supported_architectures
+
+- name: Install PowerShell (pwsh)
+  become: true
+  block:
+    - name: Install PowerShell on Debian
+      ansible.builtin.apt:
+        deb: >-
+          https://github.com/PowerShell/PowerShell/releases/download/v{{ pwsh_target_version }}/powershell_{{ pwsh_target_version }}-1.deb_{{ pwsh_arch }}.deb
+      when:
+        - pwsh_installed_version == '' or pwsh_installed_version is version(pwsh_target_version, '<')
+  when: ansible_facts['architecture'] in pwsh_supported_architectures
+
+- name: Verify PowerShell Installation
+  ansible.builtin.command: "pwsh --version"
+  register: pwsh_version
+  changed_when: false
+  when: ansible_facts['architecture'] in pwsh_supported_architectures
+
+- name: Show Installed PowerShell Version
+  ansible.builtin.debug:
+    msg: "Installed PowerShell Version: {{ pwsh_version.stdout }}"
+  when: ansible_facts['architecture'] in pwsh_supported_architectures

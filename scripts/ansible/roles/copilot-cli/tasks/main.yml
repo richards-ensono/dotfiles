@@ -1,0 +1,81 @@
+---
+- name: Manage GitHub Copilot CLI installation
+  when: copilot_cli_enabled | bool
+  block:
+    - name: Check if copilot is already installed
+      command: copilot --version
+      register: copilot_check
+      failed_when: false
+      changed_when: false
+      environment:
+        PATH: "{{ copilot_cli_install_prefix }}/bin:{{ ansible_env.PATH }}"
+
+    - name: Display current installed version (if any)
+      debug:
+        msg: "GitHub Copilot CLI is already installed: {{ copilot_check.stdout }}"
+      when: copilot_check.rc == 0
+
+    - name: Decide whether GitHub Copilot CLI should be installed
+      set_fact:
+        copilot_needs_install: >-
+          {{
+            copilot_check.rc != 0 or
+            (copilot_cli_version == "latest" and copilot_cli_update_latest | bool) or
+            (copilot_cli_version != "latest" and copilot_cli_version not in copilot_check.stdout)
+          }}
+
+    - name: Ensure installation directory exists
+      file:
+        path: "{{ copilot_cli_install_prefix }}/bin"
+        state: directory
+        mode: '0755'
+      when: copilot_needs_install
+
+    - name: Download GitHub Copilot CLI install script
+      get_url:
+        url: "{{ copilot_cli_install_script_url }}"
+        dest: "/tmp/copilot-install.sh"
+        mode: '0755'
+      when: copilot_needs_install
+
+    - name: Install GitHub Copilot CLI
+      shell: |
+        set -e
+        {% if copilot_cli_version != "latest" %}
+        export VERSION="{{ copilot_cli_version }}"
+        {% endif %}
+        export PREFIX="{{ copilot_cli_install_prefix }}"
+        bash /tmp/copilot-install.sh
+      args:
+        executable: /bin/bash
+      when: copilot_needs_install
+      register: copilot_install_result
+
+    - name: Clean up install script
+      file:
+        path: /tmp/copilot-install.sh
+        state: absent
+      when: copilot_needs_install
+
+    - name: Verify GitHub Copilot CLI installation
+      command: "{{ copilot_cli_install_prefix }}/bin/copilot --version"
+      register: copilot_verify
+      changed_when: false
+
+    - name: Display installed version
+      debug:
+        msg: "GitHub Copilot CLI installed successfully: {{ copilot_verify.stdout }}"
+
+    - name: Add installation note
+      debug:
+        msg: |
+          GitHub Copilot CLI has been installed to {{ copilot_cli_install_prefix }}/bin/copilot
+
+          To use GitHub Copilot CLI:
+          1. Ensure {{ copilot_cli_install_prefix }}/bin is in your PATH
+          2. Run 'copilot' to launch the CLI
+          3. On first launch, use '/login' to authenticate with GitHub
+          4. You need an active GitHub Copilot subscription
+
+          For more information, visit: https://docs.github.com/copilot/concepts/agents/about-copilot-cli
+      when: copilot_needs_install

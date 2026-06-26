@@ -1,0 +1,3 @@
+---
+# Note: uv is typically updated very frequently; the script handles finding the latest version.
+uv_install_script_url: "https://astral.sh/uv/install.sh"

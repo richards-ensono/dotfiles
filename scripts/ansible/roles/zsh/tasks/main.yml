@@ -1,0 +1,40 @@
+---
+- name: Install Zsh on Debian-based systems
+  apt:
+    name: zsh
+    state: present
+    update_cache: true
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Install Zsh on RedHat-based systems
+  yum:
+    name: zsh
+    state: present
+  when: ansible_facts['os_family'] == "RedHat"
+
+- name: Get all interactive users (excluding system users and 'nobody')
+  command: >-
+    awk -F: '$3 >= 1000 && $1 != "nobody" {print $1}' /etc/passwd
+  register: interactive_users
+  changed_when: false
+
+- name: Change default shell to Zsh for all interactive users (excluding 'nobody')
+  user:
+    name: "{{ item }}"
+    shell: /usr/bin/zsh
+  loop: "{{ interactive_users.stdout_lines }}"
+  when: interactive_users.stdout_lines | length > 0
+
+- name: Ensure all users' default shell is Zsh
+  debug:
+    msg: "User {{ item }} default shell set to /bin/zsh"
+  loop: "{{ interactive_users.stdout_lines }}"
+
+- name: Verify Zsh installation
+  command: zsh --version
+  register: zsh_version
+  changed_when: false
+
+- name: Display installed Zsh version
+  debug:
+    msg: "Installed Zsh version: {{ zsh_version.stdout }}"

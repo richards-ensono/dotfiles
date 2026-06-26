@@ -1,0 +1,67 @@
+[core]
+editor = nvim
+eol = lf
+autocrlf = input
+
+[user]
+email = {{ $email | quote }}
+signingkey = {{ $signingkey | quote }}
+
+[color]
+ui = true
+
+[diff]
+tool = nvimdiff
+
+[difftool]
+prompt = false
+
+[difftool "nvimdiff"]
+cmd = "nvim -d \"$LOCAL\" \"$REMOTE\""
+
+[merge]
+tool = nvimdiff
+
+[mergetool]
+prompt = true
+
+[mergetool "nvimdiff"]
+cmd = "nvim -d \"$LOCAL\" \"$REMOTE\" \"$MERGED\" -c 'wincmd w' -c 'wincmd J'"
+
+[branch]
+autosetupmerge = true
+
+[push]
+default = simple
+
+[pull]
+rebase = true
+
+[fetch]
+prune = true
+
+[rebase]
+autoStash = true
+
+[commit]
+gpgsign = true
+
+[tag]
+gpgsign = true
+
+{{ if eq .chezmoi.os "windows" -}}
+[gpg]
+program = C:\\Program Files\\GnuPG\\bin\\gpg.exe
+{{ end }}
+{{ if eq .chezmoi.os "linux" -}}
+[gpg]
+{{    if stat ("/usr/local/bin/gpg") -}}
+        program = /usr/local/bin/gpg
+{{    else if stat ("$HOME/.local/bin/gpg" | expandenv) -}}
+        program = {{ "$HOME/.local/bin/gpg" | expandenv }}
+{{    else -}}
+        program = gpg
+{{    end -}}
+{{ end }}
+[init]
+defaultBranch = main

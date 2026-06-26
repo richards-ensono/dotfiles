@@ -1,0 +1,19 @@
+---
+- name: Install bat (alternative to cat)
+  become: true
+  block:
+    - name: Install bat on Debian/Ubuntu
+      apt:
+        name: bat
+        state: present
+      when: ansible_facts['os_family'] == "Debian"
+
+- name: Create symlink for bat as 'batcat' on Debian-based distros
+  become: true
+  file:
+    src: "/usr/bin/batcat"
+    dest: "/usr/local/bin/bat"
+    state: link
+    # Replace a prior file so the user-facing bat command always points at batcat.
+    force: true
+  when: ansible_facts['os_family'] == "Debian"

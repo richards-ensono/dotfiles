@@ -1,0 +1,42 @@
+---
+- name: Check if .NET SDK is already installed
+  command: "{{ ansible_env.HOME }}/.dotnet/dotnet --list-sdks"
+  register: dotnet_check
+  failed_when: false
+  changed_when: false
+
+- name: Create temporary directory for dotnet install script
+  tempfile:
+    state: directory
+    suffix: dotnet_install
+  register: dotnet_temp_dir
+  when: dotnet_check.rc != 0 or dotnet_sdk_version not in dotnet_check.stdout
+
+- name: Download dotnet-install script
+  get_url:
+    url: "{{ dotnet_install_script_url }}"
+    dest: "{{ dotnet_temp_dir.path }}/dotnet-install.sh"
+    mode: '0755'
+  when: dotnet_check.rc != 0 or dotnet_sdk_version not in dotnet_check.stdout
+
+- name: Install .NET SDK
+  command: "{{ dotnet_temp_dir.path }}/dotnet-install.sh --channel {{ dotnet_version }}"
+  args:
+    creates: "{{ ansible_env.HOME }}/.dotnet/dotnet"
+  when: dotnet_check.rc != 0 or dotnet_sdk_version not in dotnet_check.stdout
+
+- name: Clean up temporary directory
+
+  file:
+    path: "{{ dotnet_temp_dir.path }}"
+    state: absent
+  when: dotnet_temp_dir.path is defined
+
+- name: Verify .NET installation
+  command: "{{ ansible_env.HOME }}/.dotnet/dotnet --version"
+  register: dotnet_verify
+  changed_when: false
+
+- name: Show .NET version
+  debug:
+    msg: ".NET installed: {{ dotnet_verify.stdout }}"

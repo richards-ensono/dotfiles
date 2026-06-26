@@ -1,0 +1,3 @@
+---
+speckit_package: "specify-cli"
+speckit_repo_url: "git+https://github.com/github/spec-kit.git"
