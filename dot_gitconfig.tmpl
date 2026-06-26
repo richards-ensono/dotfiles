@@ -4,8 +4,14 @@ eol = lf
 autocrlf = input
 
 [user]
-email = {{ $email | quote }}
-signingkey = {{ $signingkey | quote }}
+{{ if hasKey . "email" -}}
+email = {{ .email | quote }}
+{{ else if env "CHEZMOI_EMAIL" -}}
+email = {{ env "CHEZMOI_EMAIL" | quote }}
+{{ end -}}
+{{ if hasKey . "signing_key" -}}
+signingkey = {{ .signing_key | quote }}
+{{ end -}}
 
 [color]
 ui = true

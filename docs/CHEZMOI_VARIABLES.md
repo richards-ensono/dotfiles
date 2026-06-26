@@ -30,15 +30,14 @@ This repository uses both Chezmoi built-in facts and repo-defined data keys.
 
 ## Common patterns in this repo
 
-### Template fallbacks for clean-container runs
+### Conditional identity values for clean-container runs
 
-`dot_gitconfig.tmpl` now resolves Git email in this order:
+`dot_gitconfig.tmpl` only writes Git identity fields when values are available:
 
-1. top-level Chezmoi data key `email`,
-2. environment variable `CHEZMOI_EMAIL`,
-3. the same username-derived fallback used by `.chezmoi.toml.tmpl`.
+1. `email` comes from the top-level Chezmoi data key, or from `CHEZMOI_EMAIL` during source-only validation.
+2. `signingkey` comes from the top-level Chezmoi data key `signing_key`.
 
-That keeps source-only Docker validation green even when no Chezmoi config file has been initialized inside the container.
+That keeps source-only Docker validation green without inventing identity values when no Chezmoi config file has been initialized inside the container.
 
 ### Platform-gated files
 
