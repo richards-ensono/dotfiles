@@ -95,7 +95,6 @@
     - rootless-networking
     - nvm
     - pnpm
-    - bun
     - uv
     - speckit
     - dotnet

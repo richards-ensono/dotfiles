@@ -4,6 +4,9 @@ eol = lf
 autocrlf = input
 
 [user]
+{{ if hasKey . "name" -}}
+name = {{ .name | quote }}
+{{ end -}}
 {{ if hasKey . "email" -}}
 email = {{ .email | quote }}
 {{ else if env "CHEZMOI_EMAIL" -}}

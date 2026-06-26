@@ -18,6 +18,7 @@ This repository uses both Chezmoi built-in facts and repo-defined data keys.
 | Key           | Meaning                                                       | Current source       |
 | :------------ | :------------------------------------------------------------ | :------------------- |
 | `email`       | Default Git or contact email selected by username.            | `.chezmoi.toml.tmpl` |
+| `name`        | Default Git author name.                                      | `.chezmoi.toml.tmpl` |
 | `role`        | High-level persona marker used for personal vs work behavior. | `.chezmoi.toml.tmpl` |
 | `signing_key` | GPG Signing key used to sign commits and messages             | `.chezmoi.toml.tmpl` |
 
@@ -34,8 +35,9 @@ This repository uses both Chezmoi built-in facts and repo-defined data keys.
 
 `dot_gitconfig.tmpl` only writes Git identity fields when values are available:
 
-1. `email` comes from the top-level Chezmoi data key, or from `CHEZMOI_EMAIL` during source-only validation.
-2. `signingkey` comes from the top-level Chezmoi data key `signing_key`.
+1. `name` comes from the top-level Chezmoi data key.
+2. `email` comes from the top-level Chezmoi data key, or from `CHEZMOI_EMAIL` during source-only validation.
+3. `signingkey` comes from the top-level Chezmoi data key `signing_key`.
 
 That keeps source-only Docker validation green without inventing identity values when no Chezmoi config file has been initialized inside the container.
 

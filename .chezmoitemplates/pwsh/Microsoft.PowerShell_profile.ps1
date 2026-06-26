@@ -1,7 +1,7 @@
-if (Test-Path "~/.config/oh-my-posh/cloud-native-tokyo-night.omp.json") {
-    oh-my-posh init pwsh --config '~/.config/oh-my-posh/cloud-native-tokyo-night.omp.json' | Invoke-Expression
+if (Test-Path "~/.config/oh-my-posh/ensono.omp.json") {
+    oh-my-posh init pwsh --config '~/.config/oh-my-posh/ensono.omp.json' | Invoke-Expression
 } else {
-    oh-my-posh init pwsh --config 'https://raw.githubusercontent.com/richards-ensono/dotfiles/master/dot_config/oh-my-posh/cloud-native-tokyo-night.omp.json' | Invoke-Expression
+    oh-my-posh init pwsh --config 'https://raw.githubusercontent.com/richards-ensono/dotfiles/master/dot_config/oh-my-posh/ensono.omp.json' | Invoke-Expression
 }
 
 if ((get-command hugo | Measure-Object).Count -gt 0) {

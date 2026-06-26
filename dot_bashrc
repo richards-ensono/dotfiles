@@ -132,10 +132,10 @@ fi
 
 # oh my posh
 if command -v oh-my-posh &> /dev/null; then
-  if [ -f "$HOME/.config/oh-my-posh/cloud-native-tokyo-night.omp.json" ]; then
-    eval "$(oh-my-posh init bash --config "$HOME"/.config/oh-my-posh/cloud-native-tokyo-night.omp.json)"
+  if [ -f "$HOME/.config/oh-my-posh/ensono.omp.json" ]; then
+    eval "$(oh-my-posh init bash --config "$HOME"/.config/oh-my-posh/ensono.omp.json)"
   else
-    eval "$(oh-my-posh init bash --config 'https://raw.githubusercontent.com/richards-ensono/dotfiles/master/dot_config/oh-my-posh/cloud-native-tokyo-night.omp.json')"
+    eval "$(oh-my-posh init bash --config 'https://raw.githubusercontent.com/richards-ensono/dotfiles/master/dot_config/oh-my-posh/ensono.omp.json')"
   fi
 fi
 
