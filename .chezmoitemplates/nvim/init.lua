@@ -49,6 +49,23 @@ require("lazy").setup({
 			opts = {},
 		},
 		{ "folke/noice.nvim", event = "VeryLazy", opts = {}, dependencies = {} },
+		{
+			"folke/which-key.nvim",
+			opts = {
+				spec = {
+					{
+						"<leader>t",
+						group = "tools",
+						icon = { icon = "󰒓", color = "cyan" },
+					},
+					{
+						"<leader>a",
+						group = "agent",
+						icon = { icon = "󰚩", color = "orange" },
+					},
+				},
+			},
+		},
 		{ "neovim/nvim-lspconfig" },
 		{
 			"seblyng/roslyn.nvim",
@@ -122,6 +139,19 @@ require("lazy").setup({
 				-- calling `setup` is optional for customization
 				require("fzf-lua").setup({ "fzf-tmux", winopts = { preview = { default = "bat" } } })
 			end,
+		},
+		{
+			"stevearc/conform.nvim",
+			opts = {
+				formatters_by_ft = {
+					rst = { "rstfmt" },
+				},
+				formatters = {
+					rstfmt = {
+						prepend_args = { "-w", "140" },
+					},
+				},
+			},
 		},
 		{ "pablopunk/pi.nvim" },
 	},
@@ -271,3 +301,7 @@ vim.opt.relativenumber = false
 -- pi ai
 vim.keymap.set("n", "<leader>ai", ":PiAsk<CR>", { desc = "Ask pi" })
 vim.keymap.set("v", "<leader>ai", ":PiAskSelection<CR>", { desc = "Ask pi (selection)" })
+
+-- keybindings
+vim.keymap.set("n", "<leader>tf", "<cmd>:Format<CR>", { desc = "Format File" })
+vim.keymap.set("v", "<leader>tf", ":Format", { desc = "Format Selection" })
