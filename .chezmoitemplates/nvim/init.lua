@@ -39,7 +39,6 @@ vim.g.maplocalleader = "\\"
 require("lazy").setup({
 	spec = {
 		{ "LazyVim/LazyVim", import = "lazyvim.plugins" },
-		{ "github/copilot.vim" },
 		{
 			"CopilotC-Nvim/CopilotChat.nvim",
 			branch = "canary",
@@ -49,41 +48,44 @@ require("lazy").setup({
 			},
 			opts = {},
 		},
-		{ "folke/noice.nvim", event = "VeryLazy", opts = { }, dependencies = { } },
-			{ "neovim/nvim-lspconfig" },
-			{
-				"seblyng/roslyn.nvim",
-				ft = { "cs", "csproj", "sln" },
-				opts = {
-					-- Prefer the `roslyn` wrapper if installed.
-					exe = function()
-						if vim.fn.executable("roslyn") == 1 then
-							return { "roslyn" }
-						end
-						if vim.fn.executable("Microsoft.CodeAnalysis.LanguageServer") == 1 then
-							return { "Microsoft.CodeAnalysis.LanguageServer" }
-						end
-						return nil
-					end,
-				},
-				config = function(_, opts)
-					local ok, roslyn = pcall(require, "roslyn")
-					if not ok then
-						return
+		{ "folke/noice.nvim", event = "VeryLazy", opts = {}, dependencies = {} },
+		{ "neovim/nvim-lspconfig" },
+		{
+			"seblyng/roslyn.nvim",
+			ft = { "cs", "csproj", "sln" },
+			opts = {
+				-- Prefer the `roslyn` wrapper if installed.
+				exe = function()
+					if vim.fn.executable("roslyn") == 1 then
+						return { "roslyn" }
 					end
-					local exe = opts.exe and opts.exe() or nil
-					if not exe then
-						vim.schedule(function()
-							vim.notify("roslyn.nvim: no Roslyn LSP executable found (install `roslyn` or Roslyn Language Server)", vim.log.levels.WARN)
-						end)
-						return
+					if vim.fn.executable("Microsoft.CodeAnalysis.LanguageServer") == 1 then
+						return { "Microsoft.CodeAnalysis.LanguageServer" }
 					end
-					roslyn.setup({
-						exe = exe,
-					})
+					return nil
 				end,
 			},
-		{ "nvim-treesitter/nvim-treesitter", branch = 'main', lazy = false, build = ":TSUpdate" },
+			config = function(_, opts)
+				local ok, roslyn = pcall(require, "roslyn")
+				if not ok then
+					return
+				end
+				local exe = opts.exe and opts.exe() or nil
+				if not exe then
+					vim.schedule(function()
+						vim.notify(
+							"roslyn.nvim: no Roslyn LSP executable found (install `roslyn` or Roslyn Language Server)",
+							vim.log.levels.WARN
+						)
+					end)
+					return
+				end
+				roslyn.setup({
+					exe = exe,
+				})
+			end,
+		},
+		{ "nvim-treesitter/nvim-treesitter", branch = "main", lazy = false, build = ":TSUpdate" },
 		{
 			"nvim-lualine/lualine.nvim",
 			dependencies = { "nvim-tree/nvim-web-devicons" },
@@ -121,6 +123,7 @@ require("lazy").setup({
 				require("fzf-lua").setup({ "fzf-tmux", winopts = { preview = { default = "bat" } } })
 			end,
 		},
+		{ "pablopunk/pi.nvim" },
 	},
 	install = { colorscheme = { "tokyonight" } },
 	checker = { enabled = true },
@@ -130,22 +133,22 @@ local custom_tokyonight = require("lualine.themes.tokyonight")
 custom_tokyonight.normal.c.bg = "#1a1b26"
 
 require("noice").setup({
-  lsp = {
-    -- override markdown rendering so that **cmp** and other plugins use **Treesitter**
-    override = {
-      ["vim.lsp.util.convert_input_to_markdown_lines"] = true,
-      ["vim.lsp.util.stylize_markdown"] = true,
-      ["cmp.entry.get_documentation"] = true, -- requires hrsh7th/nvim-cmp
-    },
-  },
-  -- you can enable a preset for easier configuration
-  presets = {
-    bottom_search = true, -- use a classic bottom cmdline for search
-    command_palette = true, -- position the cmdline and popupmenu together
-    long_message_to_split = true, -- long messages will be sent to a split
-    inc_rename = false, -- enables an input dialog for inc-rename.nvim
-    lsp_doc_border = false, -- add a border to hover docs and signature help
-  },
+	lsp = {
+		-- override markdown rendering so that **cmp** and other plugins use **Treesitter**
+		override = {
+			["vim.lsp.util.convert_input_to_markdown_lines"] = true,
+			["vim.lsp.util.stylize_markdown"] = true,
+			["cmp.entry.get_documentation"] = true, -- requires hrsh7th/nvim-cmp
+		},
+	},
+	-- you can enable a preset for easier configuration
+	presets = {
+		bottom_search = true, -- use a classic bottom cmdline for search
+		command_palette = true, -- position the cmdline and popupmenu together
+		long_message_to_split = true, -- long messages will be sent to a split
+		inc_rename = false, -- enables an input dialog for inc-rename.nvim
+		lsp_doc_border = false, -- add a border to hover docs and signature help
+	},
 })
 
 -- format buffer on write
@@ -249,7 +252,8 @@ require("tokyonight").setup({
 
 vim.cmd([[colorscheme tokyonight]])
 
--- Disable Mousevim.opt.mousescroll = "ver:0,hor:0"
+-- Disable Mouse
+vim.opt.mousescroll = "ver:0,hor:0"
 vim.keymap.set("", "<up>", "<nop>", { noremap = true })
 vim.keymap.set("", "<down>", "<nop>", { noremap = true })
 vim.keymap.set("i", "<up>", "<nop>", { noremap = true })
@@ -263,3 +267,7 @@ vim.opt.mouse = ""
 
 -- disable relative line numbers
 vim.opt.relativenumber = false
+
+-- pi ai
+vim.keymap.set("n", "<leader>ai", ":PiAsk<CR>", { desc = "Ask pi" })
+vim.keymap.set("v", "<leader>ai", ":PiAskSelection<CR>", { desc = "Ask pi (selection)" })
