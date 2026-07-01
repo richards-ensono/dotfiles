@@ -153,7 +153,14 @@ require("lazy").setup({
 				},
 			},
 		},
-		{ "pablopunk/pi.nvim" },
+		{
+			"pablopunk/pi.nvim",
+			opts = {
+				provider = "github-copilot",
+				model = "gpt-5.5",
+				thinking = "low",
+			},
+		},
 	},
 	install = { colorscheme = { "tokyonight" } },
 	checker = { enabled = true },
