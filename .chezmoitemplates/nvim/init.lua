@@ -148,7 +148,7 @@ require("lazy").setup({
 				},
 				formatters = {
 					rstfmt = {
-						prepend_args = { "-w", "140" },
+						prepend_args = { "-w", "120" },
 					},
 				},
 			},
