@@ -35,6 +35,10 @@ vim.opt.rtp:prepend(lazypath)
 vim.g.mapleader = " "
 vim.g.maplocalleader = "\\"
 
+-- Ensure files end with a final newline when written.
+vim.opt.fixendofline = true
+vim.opt.endofline = true
+
 -- Setup lazy.nvim
 require("lazy").setup({
 	spec = {
@@ -208,6 +212,19 @@ vim.api.nvim_create_user_command("Format", function(args)
 	end
 	require("conform").format({ async = true, lsp_format = "fallback", range = range })
 end, { range = true })
+
+-- ensure end of file is fixed
+vim.api.nvim_create_autocmd("BufWritePre", {
+	pattern = "*",
+	callback = function()
+		local line_count = vim.api.nvim_buf_line_count(0)
+		local last_line = vim.api.nvim_buf_get_lines(0, line_count - 1, line_count, false)[1]
+
+		if last_line ~= "" then
+			vim.api.nvim_buf_set_lines(0, line_count, line_count, false, { "" })
+		end
+	end,
+})
 
 -- configure status line
 local has_noice, noice = pcall(require, "noice")
