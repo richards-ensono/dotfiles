@@ -105,7 +105,8 @@
             "{{ if or (.Working.Changed) (.Staging.Changed) }}p:orange{{ end }}",
             "{{ if and (gt .Ahead 0) (gt .Behind 0) }}p:red{{ end }}",
             "{{ if gt .Ahead 0 }}p:magenta{{ end }}",
-            "{{ if gt .Behind 0 }}p:red{{ end }}"
+            "{{ if gt .Behind 0 }}p:red{{ end }}",
+            "p:green"
           ]
         },
         {
