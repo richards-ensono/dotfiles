@@ -153,6 +153,19 @@ require("lazy").setup({
 				formatters = {
 					rstfmt = {
 						prepend_args = { "-w", "120" },
+						condition = function(_, ctx)
+							-- rstfmt uses docutils directly and does not load this project's
+							-- Sphinx extensions, so it errors on custom directives such as
+							-- `.. md-mermaid::`. Skip rstfmt for those files rather than
+							-- breaking save-on-format.
+							local lines = vim.api.nvim_buf_get_lines(ctx.buf, 0, -1, false)
+							for _, line in ipairs(lines) do
+								if line:match("^%s*%.%.%s+md%-mermaid::") then
+									return false
+								end
+							end
+							return true
+						end,
 					},
 				},
 			},
