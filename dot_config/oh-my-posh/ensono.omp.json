@@ -113,12 +113,12 @@
           "options": {
             "always_enabled": true
           },
-          "trailing_diamond": "\ue0b0",
+          "powerline_symbol": "\ue0b0",
           "template": " \ue23a {{ if gt .Code 0 }}\uf00d {{ reason .Code }}{{ else }}\uf42e{{ end }} ",
           "foreground": "p:background",
           "background": "p:green",
           "type": "status",
-          "style": "diamond",
+          "style": "powerline",
           "foreground_templates": [
             "{{ if gt .Code 0 }}p:black{{ end }}"
           ],
