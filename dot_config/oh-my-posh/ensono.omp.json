@@ -17,19 +17,9 @@
     "selection": "#242347",
     "brand": "#6941eb",
     "primary": "#00c8bc",
-    "left_1": "#6941eb",
-    "left_2": "#7150dc",
-    "left_3": "#785ecc",
-    "left_4": "#806dbd",
-    "left_5": "#887bae",
-    "left_6": "#90899f",
-    "right_1": "#00c8bc",
-    "right_2": "#12c5ba",
-    "right_3": "#24c2b7",
-    "right_4": "#36beb4",
-    "right_5": "#48bbb0",
-    "right_6": "#5ab8ad",
-    "right_7": "#6cb5aa"
+    "left": "#6941eb",
+    "right": "#00c8bc",
+    "separator": "#ffffff"
   },
   "transient_prompt": {
     "template": " $ ",
@@ -50,7 +40,7 @@
           "trailing_diamond": "\ue0b0",
           "template": " {{ if .SSHSession }}\ueba9 {{ end }}{{ .UserName }} ",
           "foreground": "p:foreground",
-          "background": "p:left_1",
+          "background": "p:left",
           "type": "session",
           "style": "diamond"
         },
@@ -60,7 +50,7 @@
           },
           "template": " {{ .HostName | lower }} ",
           "foreground": "p:foreground",
-          "background": "p:left_2",
+          "background": "p:left",
           "type": "session",
           "style": "powerline",
           "powerline_symbol": "\ue0b0"
@@ -68,8 +58,8 @@
         {
           "template": " {{ .Icon }} {{ if .WSL }} {{ .Env.DISTRO_RELEASE }}{{ end }} ",
           "foreground": "p:foreground",
-          "powerline_symbol": "\ue0b0",
-          "background": "p:left_3",
+          "powerline_symbol": "<p:separator>\ue0b1</>",
+          "background": "p:left",
           "type": "os",
           "style": "powerline",
           "min_width": 120
@@ -80,8 +70,8 @@
           },
           "template": " \uf07b  {{ .Folder }} ",
           "foreground": "p:foreground",
-          "powerline_symbol": "\ue0b0",
-          "background": "p:left_4",
+          "powerline_symbol": "<p:separator>\ue0b1</>",
+          "background": "p:left",
           "type": "path",
           "style": "powerline",
           "min_width": 120
@@ -90,14 +80,14 @@
           "properties": {
             "style": "full"
           },
-          "leading_diamond": "<transparent,background>\ue0b0</>",
-          "trailing_diamond": "\ue0b0",
+          "leading_diamond": "<p:separator,background>\ue0b0</>",
+          "trailing_diamond": "<p:separator>\ue0b1</>",
           "template": " \uf07b  {{ .Folder }} ",
           "foreground": "p:foreground",
-          "background": "p:left_4",
+          "background": "p:left",
           "type": "path",
           "style": "powerline",
-          "powerline_symbol": "\ue0b0",
+          "powerline_symbol": "<p:separator>\ue0b1</>",
           "max_width": 119
         },
         {
@@ -143,8 +133,8 @@
       "segments": [
         {
           "template": " \uf489  {{ .Name }} ",
-          "foreground": "p:black",
-          "background": "p:right_7",
+          "foreground": "p:background",
+          "background": "p:right",
           "leading_diamond": "\ue0b2",
           "type": "shell",
           "style": "diamond",
@@ -153,8 +143,8 @@
         {
           "template": " \udb84\udcfe {{.Context}}{{if .Namespace}} :: {{.Namespace}}{{end}} ",
           "foreground": "p:black",
-          "background": "p:right_6",
-          "leading_diamond": "\ue0b2",
+          "background": "p:right",
+          "leading_diamond": "\ue0b3",
           "type": "kubectl",
           "style": "diamond",
           "min_width": 150
@@ -162,8 +152,8 @@
         {
           "template": " \uebd8 {{ .Name }} ({{ if .EnvironmentName | contains \"AzureCloud\" }}{{ \"Global\" }}{{ else }}{{ .EnvironmentName }}{{ end }}) ",
           "foreground": "p:black",
-          "background": "p:right_5",
-          "leading_diamond": "\ue0b2",
+          "background": "p:right",
+          "leading_diamond": "<p:separator>\ue0b3</>",
           "type": "az",
           "style": "diamond",
           "min_width": 150
@@ -172,27 +162,27 @@
           "type": "rust",
           "style": "diamond",
           "foreground": "p:black",
-          "background": "p:right_4",
-          "leading_diamond": "\ue0b2",
-          "template": "  {{ .Full }} ",
+          "background": "p:right",
+          "leading_diamond": "<p:separator>\ue0b3</>",
+          "template": " \ue7a8 {{ .Full }} ",
           "min_width": 150
         },
         {
           "type": "node",
           "style": "diamond",
           "foreground": "p:black",
-          "background": "p:right_3",
-          "leading_diamond": "\ue0b2",
-          "template": "  {{ .Full }} ",
+          "background": "p:right",
+          "leading_diamond": "<p:separator>\ue0b3</>",
+          "template": " \ue718 {{ .Full }} ",
           "min_width": 150
         },
         {
           "type": "dotnet",
           "style": "diamond",
-          "leading_diamond": "\ue0b2",
+          "leading_diamond": "<p:separator>\ue0b3</>",
           "foreground": "p:black",
-          "background": "p:right_2",
-          "template": "  {{ .Full }} ",
+          "background": "p:right",
+          "template": " \ue77f {{ .Full }} ",
           "min_width": 150
         },
         {
@@ -201,11 +191,11 @@
             "style": "round",
             "threshold": 500
           },
-          "leading_diamond": "\ue0b2",
+          "leading_diamond": "<p:separator>\ue0b3</>",
           "trailing_diamond": "\ue0b4",
           "template": " \uf520 {{ .FormattedMs }} ",
           "foreground": "p:black",
-          "background": "p:right_1",
+          "background": "p:right",
           "type": "executiontime",
           "style": "diamond",
           "invert_powerline": true
@@ -223,7 +213,7 @@
       "segments": [
         {
           "template": " ~ ",
-          "foreground": "p:left_1",
+          "foreground": "p:left",
           "type": "text",
           "style": "plain"
         }
@@ -234,3 +224,4 @@
   "version": 3,
   "final_space": true
 }
+
