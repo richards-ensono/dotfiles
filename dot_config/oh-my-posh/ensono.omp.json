@@ -95,7 +95,7 @@
             "fetch_status": true,
             "fetch_upstream_icon": true
           },
-          "template": " {{ .UpstreamIcon }}{{ if gt (len .HEAD) 20 }}{{ .HEAD | trunc 20 }}..{{ else }}{{ .HEAD }}{{ end }}{{if .BranchStatus }} {{ .BranchStatus }}{{ end }}{{ if .Working.Changed }} \uf044 {{ .Working.String }}{{ end }}{{ if and (.Working.Changed) (.Staging.Changed) }} |{{ end }}{{ if .Staging.Changed }} \uf046 {{ .Staging.String }}{{ end }}{{ if gt .StashCount 0 }} \ueb4b {{ .StashCount }}{{ end }} ",
+          "template": " {{ .UpstreamIcon }}{{ if gt (len .HEAD) 20 }}{{ .HEAD | trunc 20 }}..{{ else }}{{ .HEAD }}{{ end }}{{if .BranchStatus }} {{ .BranchStatus }}{{ end }}{{ if .Working.Changed }} \uf044 {{ .Working.String }}{{ end }}{{ if and (.Working.Changed) (.Staging.Changed) }} |{{ end }}{{ if .Staging.Changed }} \uf046 {{ .Staging.String }}{{ end }}{{ if gt .StashCount 0 }} \ueb4b {{ .StashCount }}{{ end }}{{ if or (and (eq .Code 0) (not .Working.Changed) (not .Staging.Changed) (eq .Ahead 0) (eq .Behind 0)) (and (gt .Code 0) (not .Working.Changed) (not .Staging.Changed) (gt .Behind 0)) }} <p:separator>\ue0b1</>{{ end }} ",
           "powerline_symbol": "\ue0b0",
           "background": "p:yellow",
           "type": "git",
