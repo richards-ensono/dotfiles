@@ -4,11 +4,17 @@ if (Test-Path "~/.config/oh-my-posh/ensono.omp.json") {
     oh-my-posh init pwsh --config 'https://raw.githubusercontent.com/richards-ensono/dotfiles/master/dot_config/oh-my-posh/ensono.omp.json' | Invoke-Expression
 }
 
-if ((get-command hugo | Measure-Object).Count -gt 0) {
+if ((Get-Command hugo | Measure-Object).Count -gt 0) {
   hugo completion powershell | Out-String | Invoke-Expression
 }
 
-if ((get-command podman -ErrorAction SilentlyContinue | Measure-Object).Count -gt 0) {
+if ((Get-Command gpg-agent | Measure-Object).Count -gt 0) {
+  if ((Get-Process -ProcessName gpg-agent -ErrorAction SilentlyContinue | Measure-Object).Count -eq 0) {
+    & gpg-connect-agent /bye
+  }
+}
+
+if ((Get-Command podman -ErrorAction SilentlyContinue | Measure-Object).Count -gt 0) {
     Set-Alias -Name docker -Value podman
     podman completion powershell | Out-String | Invoke-Expression
 }
@@ -28,3 +34,4 @@ if (Test-Path $openSshExecutable) {
 
 Set-PSReadlineKeyHandler -Key ctrl+d -Function DeleteCharOrExit
 Set-PSReadlineKeyHandler -Key ctrl+l -Function ClearScreen
+
