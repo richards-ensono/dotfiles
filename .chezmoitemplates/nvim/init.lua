@@ -1,4 +1,5 @@
 In_wsl = os.getenv("WSL_DISTRO_NAME") ~= nil
+local is_vscode = vim.g.vscode ~= nil
 
 if In_wsl then
 	vim.g.clipboard = {
@@ -183,27 +184,30 @@ require("lazy").setup({
 	checker = { enabled = true },
 })
 
-local custom_tokyonight = require("lualine.themes.tokyonight")
-custom_tokyonight.normal.c.bg = "#1a1b26"
+local custom_tokyonight
+if not is_vscode then
+	custom_tokyonight = require("lualine.themes.tokyonight")
+	custom_tokyonight.normal.c.bg = "#1a1b26"
 
-require("noice").setup({
-	lsp = {
-		-- override markdown rendering so that **cmp** and other plugins use **Treesitter**
-		override = {
-			["vim.lsp.util.convert_input_to_markdown_lines"] = true,
-			["vim.lsp.util.stylize_markdown"] = true,
-			["cmp.entry.get_documentation"] = true, -- requires hrsh7th/nvim-cmp
+	require("noice").setup({
+		lsp = {
+			-- override markdown rendering so that **cmp** and other plugins use **Treesitter**
+			override = {
+				["vim.lsp.util.convert_input_to_markdown_lines"] = true,
+				["vim.lsp.util.stylize_markdown"] = true,
+				["cmp.entry.get_documentation"] = true, -- requires hrsh7th/nvim-cmp
+			},
 		},
-	},
-	-- you can enable a preset for easier configuration
-	presets = {
-		bottom_search = true, -- use a classic bottom cmdline for search
-		command_palette = true, -- position the cmdline and popupmenu together
-		long_message_to_split = true, -- long messages will be sent to a split
-		inc_rename = false, -- enables an input dialog for inc-rename.nvim
-		lsp_doc_border = false, -- add a border to hover docs and signature help
-	},
-})
+		-- you can enable a preset for easier configuration
+		presets = {
+			bottom_search = true, -- use a classic bottom cmdline for search
+			command_palette = true, -- position the cmdline and popupmenu together
+			long_message_to_split = true, -- long messages will be sent to a split
+			inc_rename = false, -- enables an input dialog for inc-rename.nvim
+			lsp_doc_border = false, -- add a border to hover docs and signature help
+		},
+	})
+end
 
 -- format buffer on write
 vim.api.nvim_create_autocmd("BufWritePre", {
@@ -239,85 +243,87 @@ vim.api.nvim_create_autocmd("BufWritePre", {
 	end,
 })
 
--- configure status line
-local has_noice, noice = pcall(require, "noice")
-require("lualine").setup({
-	options = {
-		icons_enabled = true,
-		theme = custom_tokyonight,
-		component_separators = { left = "", right = "" },
-		section_separators = { left = "", right = "" },
-		disabled_filetypes = {
-			statusline = {},
-			winbar = {},
-		},
-		ignore_focus = {},
-		always_divide_middle = true,
-		globalstatus = false,
-		refresh = {
-			statusline = 1000,
-			tabline = 1000,
-			winbar = 1000,
-		},
-	},
-	sections = {
-		lualine_a = { { "mode", separator = { left = "", right = "" }, right_padding = 2 } },
-		lualine_b = { "branch", "diff", "diagnostics" },
-		lualine_c = { { "filename", separator = { right = "" }, color = { bg = "#292e42" } } },
-		lualine_x = {
-			{
-				function()
-					if has_noice and noice.api and noice.api.status and noice.api.status.mode then
-						return noice.api.status.mode.get()
-					end
-					return ""
-				end,
-				cond = function()
-					return has_noice
-						and noice.api
-						and noice.api.status
-						and noice.api.status.mode
-						and noice.api.status.mode.has()
-				end,
-				separator = { left = "" },
-				color = { bg = "#7dcfff", fg = "#1f2335" },
+if not is_vscode then
+	-- configure status line
+	local has_noice, noice = pcall(require, "noice")
+	require("lualine").setup({
+		options = {
+			icons_enabled = true,
+			theme = custom_tokyonight,
+			component_separators = { left = "", right = "" },
+			section_separators = { left = "", right = "" },
+			disabled_filetypes = {
+				statusline = {},
+				winbar = {},
 			},
-			{ "encoding", separator = { left = "" }, color = { bg = "#bb9af7", fg = "#1f2335" } },
-			{ "fileformat", separator = { left = "" }, color = { bg = "#9d7cd8", fg = "#1f2335" } },
-			{ "filetype", separator = { left = "" }, color = { bg = "#414868", fg = "#ffffff" } },
-		},
-		lualine_y = { { "progress", color = { bg = "#c53b53", fg = "#ffffff" } } },
-		lualine_z = {
-			{
-				"location",
-				separator = { left = "", right = "" },
-				color = { bg = "#ff007c", fg = "#ffffff" },
-				left_padding = 2,
+			ignore_focus = {},
+			always_divide_middle = true,
+			globalstatus = false,
+			refresh = {
+				statusline = 1000,
+				tabline = 1000,
+				winbar = 1000,
 			},
 		},
-	},
-	inactive_sections = {
-		lualine_a = {},
-		lualine_b = {},
-		lualine_c = { "filename" },
-		lualine_x = { "location" },
-		lualine_y = {},
-		lualine_z = {},
-	},
-	tabline = {},
-	winbar = {},
-	inactive_winbar = {},
-	extensions = {},
-})
+		sections = {
+			lualine_a = { { "mode", separator = { left = "", right = "" }, right_padding = 2 } },
+			lualine_b = { "branch", "diff", "diagnostics" },
+			lualine_c = { { "filename", separator = { right = "" }, color = { bg = "#292e42" } } },
+			lualine_x = {
+				{
+					function()
+						if has_noice and noice.api and noice.api.status and noice.api.status.mode then
+							return noice.api.status.mode.get()
+						end
+						return ""
+					end,
+					cond = function()
+						return has_noice
+							and noice.api
+							and noice.api.status
+							and noice.api.status.mode
+							and noice.api.status.mode.has()
+					end,
+					separator = { left = "" },
+					color = { bg = "#7dcfff", fg = "#1f2335" },
+				},
+				{ "encoding", separator = { left = "" }, color = { bg = "#bb9af7", fg = "#1f2335" } },
+				{ "fileformat", separator = { left = "" }, color = { bg = "#9d7cd8", fg = "#1f2335" } },
+				{ "filetype", separator = { left = "" }, color = { bg = "#414868", fg = "#ffffff" } },
+			},
+			lualine_y = { { "progress", color = { bg = "#c53b53", fg = "#ffffff" } } },
+			lualine_z = {
+				{
+					"location",
+					separator = { left = "", right = "" },
+					color = { bg = "#ff007c", fg = "#ffffff" },
+					left_padding = 2,
+				},
+			},
+		},
+		inactive_sections = {
+			lualine_a = {},
+			lualine_b = {},
+			lualine_c = { "filename" },
+			lualine_x = { "location" },
+			lualine_y = {},
+			lualine_z = {},
+		},
+		tabline = {},
+		winbar = {},
+		inactive_winbar = {},
+		extensions = {},
+	})
 
--- colorscheme options
-require("tokyonight").setup({
-	style = "night",
-	on_colors = function() end,
-	on_highlights = function() end,
-})
+	-- colorscheme options
+	require("tokyonight").setup({
+		style = "night",
+		on_colors = function() end,
+		on_highlights = function() end,
+	})
 
-vim.cmd([[colorscheme tokyonight]])
+	vim.cmd([[colorscheme tokyonight]])
+end
 
 -- Disable Mouse
 vim.opt.mousescroll = "ver:0,hor:0"
