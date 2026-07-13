@@ -213,7 +213,11 @@ end
 vim.api.nvim_create_autocmd("BufWritePre", {
 	pattern = "*",
 	callback = function(args)
-		require("conform").format({ bufnr = args.buf })
+		require("conform").format({ bufnr = args.buf, async = false })
+		vim.bo[args.buf].binary = false
+		vim.bo[args.buf].endofline = true
+		vim.bo[args.buf].fixendofline = true
+		vim.bo[args.buf].fileformat = "unix"
 	end,
 })
 
@@ -229,19 +233,6 @@ vim.api.nvim_create_user_command("Format", function(args)
 	end
 	require("conform").format({ async = true, lsp_format = "fallback", range = range })
 end, { range = true })
-
--- ensure end of file is fixed
-vim.api.nvim_create_autocmd("BufWritePre", {
-	pattern = "*",
-	callback = function()
-		local line_count = vim.api.nvim_buf_line_count(0)
-		local last_line = vim.api.nvim_buf_get_lines(0, line_count - 1, line_count, false)[1]
-
-		if last_line ~= "" then
-			vim.api.nvim_buf_set_lines(0, line_count, line_count, false, { "" })
-		end
-	end,
-})
 
 if not is_vscode then
 	-- configure status line
