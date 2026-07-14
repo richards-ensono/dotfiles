@@ -71,14 +71,15 @@ tmux_conf_new_pane_reconnect_ssh=false
 tmux_conf_24b_colour=true
 
 # Advertise truecolor and styled underline support to applications running
-# inside tmux. Neovim passes underline colours to terminfo's Setulc as one
-# packed RGB integer, so split it into red/green/blue for the terminal escape.
-# Use \072 for literal ':' characters because ':' separates tmux capabilities.
+# inside tmux. Use tmux's built-in feature flags rather than hand-rolled
+# Smulx/Setulc escape overrides; Neovim still needs a modern tmux-256color
+# terminfo entry to discover these capabilities.
 set -g default-terminal "tmux-256color"
-set -as terminal-overrides ',*:Tc'
-set -as terminal-overrides ',*:Smulx=\E[4\072\072%p1%dm:Setulc=\E[58\072\0722\072\072%p1%{65536}%/%d\072\072%p1%{256}%/%{255}%&%d\072\072%p1%{255}%&%d%;m'
 %if #{>=:#{version},3.2}
-set -as terminal-features ',*:RGB:usstyle'
+set -ga terminal-features ',*:usstyle'
+set -gs terminal-overrides ',*:RGB'
+%else
+set -as terminal-overrides ',*:Tc'
 %endif
 
 # -- theming -------------------------------------------------------------------

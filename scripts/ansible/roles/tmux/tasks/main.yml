@@ -10,6 +10,7 @@
       - libevent-dev
       - libncurses5-dev
       - libncursesw5-dev
+      - ncurses-bin
       - bison
       - git
       - wget
@@ -86,6 +87,43 @@
     cmd: "make install"
     chdir: "{{ tmux_src_dir }}"
   when: tmux_needs_install
+
+- name: Check tmux-256color styled underline terminfo capabilities
+  command: infocmp -x tmux-256color
+  register: tmux_terminfo
+  changed_when: false
+  failed_when: false
+
+- name: Decide whether tmux-256color terminfo needs refresh
+  set_fact:
+    tmux_terminfo_needs_refresh: >-
+      {{ tmux_terminfo.rc != 0
+        or 'Smulx=' not in tmux_terminfo.stdout
+        or 'Setulc=' not in tmux_terminfo.stdout }}
+
+- name: Download current terminfo source
+  get_url:
+    url: https://invisible-island.net/datafiles/current/terminfo.src.gz
+    dest: "{{ tmux_src_dir }}/terminfo.src.gz"
+    mode: "0644"
+  when: tmux_terminfo_needs_refresh
+
+- name: Decompress current terminfo source
+  shell: "gzip -dc {{ tmux_src_dir | quote }}/terminfo.src.gz > {{ tmux_src_dir | quote }}/terminfo.src"
+  when: tmux_terminfo_needs_refresh
+
+- name: Install refreshed tmux-256color terminfo entry
+  command: tic -x -e tmux-256color "{{ tmux_src_dir }}/terminfo.src"
+  when: tmux_terminfo_needs_refresh
+
+- name: Verify tmux-256color styled underline terminfo capabilities
+  command: infocmp -x tmux-256color
+  register: tmux_terminfo_verify
+  changed_when: false
+  failed_when: >-
+    tmux_terminfo_verify.rc != 0
+    or 'Smulx=' not in tmux_terminfo_verify.stdout
+    or 'Setulc=' not in tmux_terminfo_verify.stdout
 
 - name: Verify tmux installation
   command: "{{ tmux_install_dir }}/bin/tmux -V"
