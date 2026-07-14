@@ -43,7 +43,17 @@ vim.opt.endofline = true
 -- Use Neovim's built-in spell checker for prose-like filetypes.
 -- Project/product words live in spell/en.utf-8.add under the nvim config directory.
 vim.opt.spelllang = { "en" }
-vim.opt.spellfile = vim.fn.stdpath("config") .. "/spell/en.utf-8.add"
+local spellfile = vim.fn.stdpath("config") .. "/spell/en.utf-8.add"
+local spellfile_compiled = spellfile .. ".spl"
+vim.opt.spellfile = spellfile
+vim.fn.mkdir(vim.fn.fnamemodify(spellfile, ":h"), "p")
+if vim.fn.filereadable(spellfile) == 1 then
+	local add_mtime = vim.fn.getftime(spellfile)
+	local spl_mtime = vim.fn.getftime(spellfile_compiled)
+	if spl_mtime < add_mtime then
+		vim.cmd("silent! mkspell! " .. vim.fn.fnameescape(spellfile))
+	end
+end
 vim.api.nvim_create_autocmd("FileType", {
 	pattern = { "gitcommit", "markdown", "rst", "text" },
 	callback = function()
