@@ -4,6 +4,7 @@
 {{- if ne .chezmoi.os "linux" }}
 /.config/nvim
 /.config/tmux
+/.tmux.conf
 /.config/zsh_aliases
 /.local
 /.profile
