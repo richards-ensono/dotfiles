@@ -70,17 +70,6 @@ tmux_conf_new_pane_reconnect_ssh=false
 # see https://github.com/termstandard/colors
 tmux_conf_24b_colour=true
 
-# Advertise truecolor and styled underline support to applications running
-# inside tmux. Use tmux's built-in feature flags rather than hand-rolled
-# Smulx/Setulc escape overrides; Neovim still needs a modern tmux-256color
-# terminfo entry to discover these capabilities.
-set -g default-terminal "tmux-256color"
-%if #{>=:#{version},3.2}
-set -as terminal-features ',*:RGB:usstyle'
-%else
-set -as terminal-overrides ',*:Tc'
-%endif
-
 # -- theming -------------------------------------------------------------------
 
 # enable or disable theming:
