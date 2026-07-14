@@ -119,14 +119,14 @@
   set_fact:
     tmux_terminfo_needs_styled_underline_patch: >-
       {{ tmux_terminfo.rc != 0
-        or 'Smulx=' not in tmux_terminfo.stdout
-        or 'Setulc=' not in tmux_terminfo.stdout }}
+        or not (tmux_terminfo.stdout is search('Smulx=.*4:'))
+        or not (tmux_terminfo.stdout is search('Setulc=.*58:2:')) }}
 
 - name: Install tmux-256color styled underline terminfo patch
   shell: |
     set -euo pipefail
-    infocmp -x tmux-256color > {{ tmux_src_dir | quote }}/tmux-256color.src
-    awk 'BEGIN { inserted = 0 } { print; if (!inserted && $0 !~ /^#/ && $0 ~ /,$/) { print "\tSmulx=\\\\E[4::%p1%dm, Setulc=\\\\E[58::2::%p1%{65536}%/%d::%p1%{256}%/%{255}%&%d::%p1%{255}%&%d%;m,"; inserted = 1 } }' {{ tmux_src_dir | quote }}/tmux-256color.src > {{ tmux_src_dir | quote }}/tmux-256color-styled.src
+    infocmp -x tmux-256color > {{ tmux_src_dir | quote }}/tmux-256color-styled.src
+    printf '\tSmulx=\\E[4:%%p1%%dm, Setulc=\\E[58:2:%%p1%%{65536}%%/%%d:%%p1%%{256}%%/%%{255}%%&%%d:%%p1%%{255}%%&%%d%%;m,\n' >> {{ tmux_src_dir | quote }}/tmux-256color-styled.src
     tic -x {{ tmux_src_dir | quote }}/tmux-256color-styled.src
   args:
     executable: /bin/bash
@@ -138,8 +138,8 @@
   changed_when: false
   failed_when: >-
     tmux_terminfo_verify.rc != 0
-    or 'Smulx=' not in tmux_terminfo_verify.stdout
-    or 'Setulc=' not in tmux_terminfo_verify.stdout
+    or not (tmux_terminfo_verify.stdout is search('Smulx=.*4:'))
+    or not (tmux_terminfo_verify.stdout is search('Setulc=.*58:2:'))
 
 - name: Verify tmux installation
   command: "{{ tmux_install_dir }}/bin/tmux -V"
