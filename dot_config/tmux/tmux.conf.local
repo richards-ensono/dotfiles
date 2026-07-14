@@ -70,12 +70,13 @@ tmux_conf_new_pane_reconnect_ssh=false
 # see https://github.com/termstandard/colors
 tmux_conf_24b_colour=true
 
-# Advertise truecolor and styled underline passthrough to applications running
-# inside tmux. This lets Neovim render coloured spell-check underlines in WSL /
-# Windows Terminal instead of degrading them to a plain underline.
+# Advertise truecolor and styled underline support to applications running
+# inside tmux. Colons in terminal-overrides capability values must be escaped,
+# otherwise tmux parses them as capability separators and drops the underline
+# colour/style sequences.
+set -g default-terminal "tmux-256color"
 set -as terminal-overrides ',*:Tc'
-set -as terminal-overrides ',*:Smulx=\E[4::%p1%dm'
-set -as terminal-overrides ',*:Setulc=\E[58::2::%p1%d::%p2%d::%p3%dm'
+set -as terminal-overrides ',*:Smulx=\E[4\:%p1%dm:Setulc=\E[58\:2\:%p1%d\:%p2%d\:%p3%dm'
 %if #{>=:#{version},3.2}
 set -as terminal-features ',*:RGB:usstyle'
 %endif
