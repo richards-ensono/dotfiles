@@ -40,6 +40,17 @@ vim.g.maplocalleader = "\\"
 vim.opt.fixendofline = true
 vim.opt.endofline = true
 
+-- Use Neovim's built-in spell checker for prose-like filetypes.
+-- Project/product words live in spell/en.utf-8.add under the nvim config directory.
+vim.opt.spelllang = { "en" }
+vim.opt.spellfile = vim.fn.stdpath("config") .. "/spell/en.utf-8.add"
+vim.api.nvim_create_autocmd("FileType", {
+	pattern = { "gitcommit", "markdown", "rst", "text" },
+	callback = function()
+		vim.opt_local.spell = true
+	end,
+})
+
 -- Setup lazy.nvim
 require("lazy").setup({
 	spec = {
