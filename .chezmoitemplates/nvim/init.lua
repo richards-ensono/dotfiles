@@ -62,15 +62,15 @@ vim.api.nvim_create_autocmd("FileType", {
 })
 
 local function configure_spell_highlights()
-	-- Some Linux terminals do not render tokyonight's default undercurl clearly.
-	-- Use a plain terminal underline as a fallback while keeping GUI undercurl.
-	vim.cmd("highlight SpellBad gui=undercurl guisp=#f7768e cterm=underline")
-	vim.cmd("highlight SpellCap gui=undercurl guisp=#e0af68 cterm=underline")
-	vim.cmd("highlight SpellRare gui=undercurl guisp=#bb9af7 cterm=underline")
-	vim.cmd("highlight SpellLocal gui=undercurl guisp=#7dcfff cterm=underline")
+	-- In truecolor terminals Neovim uses GUI highlight attributes, not cterm.
+	-- Use a plain underline there too, because many Linux terminals do not render undercurl clearly.
+	vim.cmd("highlight SpellBad gui=underline guisp=#f7768e cterm=underline")
+	vim.cmd("highlight SpellCap gui=underline guisp=#e0af68 cterm=underline")
+	vim.cmd("highlight SpellRare gui=underline guisp=#bb9af7 cterm=underline")
+	vim.cmd("highlight SpellLocal gui=underline guisp=#7dcfff cterm=underline")
 end
 
-vim.api.nvim_create_autocmd("ColorScheme", {
+vim.api.nvim_create_autocmd({ "ColorScheme", "VimEnter" }, {
 	pattern = "*",
 	callback = configure_spell_highlights,
 })
