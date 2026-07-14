@@ -88,33 +88,49 @@
     chdir: "{{ tmux_src_dir }}"
   when: tmux_needs_install
 
+- name: Check tmux-256color terminfo entry
+  command: infocmp -x tmux-256color
+  register: tmux_terminfo_initial
+  changed_when: false
+  failed_when: false
+
+- name: Download current terminfo source when tmux-256color is missing
+  get_url:
+    url: https://invisible-island.net/datafiles/current/terminfo.src.gz
+    dest: "{{ tmux_src_dir }}/terminfo.src.gz"
+    mode: "0644"
+  when: tmux_terminfo_initial.rc != 0
+
+- name: Decompress current terminfo source when tmux-256color is missing
+  shell: "gzip -dc {{ tmux_src_dir | quote }}/terminfo.src.gz > {{ tmux_src_dir | quote }}/terminfo.src"
+  when: tmux_terminfo_initial.rc != 0
+
+- name: Install current tmux-256color terminfo entry when missing
+  command: tic -x -e tmux-256color "{{ tmux_src_dir }}/terminfo.src"
+  when: tmux_terminfo_initial.rc != 0
+
 - name: Check tmux-256color styled underline terminfo capabilities
   command: infocmp -x tmux-256color
   register: tmux_terminfo
   changed_when: false
   failed_when: false
 
-- name: Decide whether tmux-256color terminfo needs refresh
+- name: Decide whether tmux-256color terminfo needs styled underline patch
   set_fact:
-    tmux_terminfo_needs_refresh: >-
+    tmux_terminfo_needs_styled_underline_patch: >-
       {{ tmux_terminfo.rc != 0
         or 'Smulx=' not in tmux_terminfo.stdout
         or 'Setulc=' not in tmux_terminfo.stdout }}
 
-- name: Download current terminfo source
-  get_url:
-    url: https://invisible-island.net/datafiles/current/terminfo.src.gz
-    dest: "{{ tmux_src_dir }}/terminfo.src.gz"
-    mode: "0644"
-  when: tmux_terminfo_needs_refresh
-
-- name: Decompress current terminfo source
-  shell: "gzip -dc {{ tmux_src_dir | quote }}/terminfo.src.gz > {{ tmux_src_dir | quote }}/terminfo.src"
-  when: tmux_terminfo_needs_refresh
-
-- name: Install refreshed tmux-256color terminfo entry
-  command: tic -x -e tmux-256color "{{ tmux_src_dir }}/terminfo.src"
-  when: tmux_terminfo_needs_refresh
+- name: Install tmux-256color styled underline terminfo patch
+  shell: |
+    set -euo pipefail
+    infocmp -x tmux-256color > {{ tmux_src_dir | quote }}/tmux-256color.src
+    awk 'BEGIN { inserted = 0 } { print; if (!inserted && $0 !~ /^#/ && $0 ~ /,$/) { print "\tSmulx=\\\\E[4::%p1%dm, Setulc=\\\\E[58::2::%p1%{65536}%/%d::%p1%{256}%/%{255}%&%d::%p1%{255}%&%d%;m,"; inserted = 1 } }' {{ tmux_src_dir | quote }}/tmux-256color.src > {{ tmux_src_dir | quote }}/tmux-256color-styled.src
+    tic -x {{ tmux_src_dir | quote }}/tmux-256color-styled.src
+  args:
+    executable: /bin/bash
+  when: tmux_terminfo_needs_styled_underline_patch
 
 - name: Verify tmux-256color styled underline terminfo capabilities
   command: infocmp -x tmux-256color
