@@ -5,6 +5,39 @@
     state: present
   when: packages is defined
 
+- name: Check for fdfind binary
+  ansible.builtin.stat:
+    path: /usr/bin/fdfind
+  register: fd_find_binary_stat
+
+- name: Create fd compatibility link on Debian
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - fd_find_binary_stat.stat.exists
+  block:
+    - name: Check existing fd compatibility target
+      ansible.builtin.stat:
+        path: /usr/local/bin/fd
+      register: fd_compat_target_stat
+
+    - name: Create fd compatibility symlink
+      ansible.builtin.file:
+        src: /usr/bin/fdfind
+        dest: /usr/local/bin/fd
+        state: link
+      when:
+        - not fd_compat_target_stat.stat.exists
+
+    - name: Fail on conflicting fd compatibility target
+      ansible.builtin.fail:
+        msg: "The path /usr/local/bin/fd already exists and is not the expected symlink to /usr/bin/fdfind."
+      when:
+        - fd_compat_target_stat.stat.exists
+        - not (
+            fd_compat_target_stat.stat.islnk | default(false)
+            and fd_compat_target_stat.stat.lnk_source | default('') == '/usr/bin/fdfind'
+          )
+
 - name: Install unlisted packages from .deb files (Debian)
   package:
     deb: "{{ item.source }}"

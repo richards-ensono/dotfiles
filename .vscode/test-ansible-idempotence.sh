@@ -20,6 +20,20 @@ ansible-galaxy install -r requirements.yml > /dev/null
 echo "=== First playbook run ==="
 ansible-playbook playbook.yml -i inventory/hosts.yml -c local | tee /tmp/ansible-first-run.log
 
+fd_path="$(command -v fd || true)"
+
+if [ -z "$fd_path" ]; then
+  echo "fd was not found on PATH after the first playbook run" >&2
+  exit 1
+fi
+
+if ! "$fd_path" --version >/dev/null 2>&1; then
+  echo "fd command at $fd_path did not execute successfully after the first playbook run" >&2
+  exit 1
+fi
+
+echo "fd available at $fd_path"
+
 echo "=== Second playbook run ==="
 ansible-playbook playbook.yml -i inventory/hosts.yml -c local | tee /tmp/ansible-second-run.log
 

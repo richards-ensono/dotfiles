@@ -6,6 +6,7 @@ packages:
   - jq
   - yq
   - shellcheck
+  - fd-find
   - libclang-dev
 
 unlisted_packages:
