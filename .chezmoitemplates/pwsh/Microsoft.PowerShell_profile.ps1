@@ -9,7 +9,14 @@ if ((Get-Command hugo | Measure-Object).Count -gt 0) {
 }
 
 if ((Get-Command gpg-agent | Measure-Object).Count -gt 0) {
-  if ((Get-Process -ProcessName gpg-agent -ErrorAction SilentlyContinue | Measure-Object).Count -eq 0) {
+  $id = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+  $principal = New-Object System.Security.Principal.WindowsPrincipal($id)
+  $isAdmin = $principal.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
+  $isNotAdmin = -not $isAdmin
+
+  $isGpgRunning = (Get-Process -ProcessName gpg-agent -ErrorAction SilentlyContinue | Measure-Object).Count -eq 0
+
+  if ($isGpgRunning -and $isNotAdmin) {
     & gpg-connect-agent /bye
   }
 }
