@@ -1,0 +1,32 @@
+---
+- name: Read {{ developer_analysis_tool.command }} ownership marker
+  ansible.builtin.slurp:
+    src: "{{ developer_analysis_tools_state_dir }}/{{ developer_analysis_tool.command }}.source"
+  register: developer_analysis_tool_marker
+  failed_when: false
+  changed_when: false
+
+- name: Install {{ developer_analysis_tool.command }} from its pinned module
+  ansible.builtin.command:
+    argv:
+      - "{{ developer_analysis_tools_go_binary }}"
+      - install
+      - "{{ developer_analysis_tool.module }}@{{ developer_analysis_tool.version }}"
+  environment:
+    GOBIN: "{{ developer_analysis_tools_install_dir }}"
+  when: >-
+    developer_analysis_tool_marker.failed | default(false) or
+    (developer_analysis_tool_marker.content | default('') | b64decode | trim) !=
+    (developer_analysis_tool.module ~ "@" ~ developer_analysis_tool.version)
+
+- name: Record {{ developer_analysis_tool.command }} ownership and source
+  ansible.builtin.copy:
+    dest: "{{ developer_analysis_tools_state_dir }}/{{ developer_analysis_tool.command }}.source"
+    content: "{{ developer_analysis_tool.module }}@{{ developer_analysis_tool.version }}\n"
+    owner: root
+    group: root
+    mode: "0644"
+  when: >-
+    developer_analysis_tool_marker.failed | default(false) or
+    (developer_analysis_tool_marker.content | default('') | b64decode | trim) !=
+    (developer_analysis_tool.module ~ "@" ~ developer_analysis_tool.version)

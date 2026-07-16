@@ -1,0 +1,55 @@
+---
+- name: Verify the Go runtime is available
+  ansible.builtin.command: "{{ developer_analysis_tools_go_binary }} version"
+  register: developer_analysis_tools_go_version
+  changed_when: false
+
+- name: Ensure the tool installation directory exists
+  ansible.builtin.file:
+    path: "{{ developer_analysis_tools_install_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Ensure the tool state directory exists
+  ansible.builtin.file:
+    path: "{{ developer_analysis_tools_state_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Inspect configured tool destinations
+  ansible.builtin.stat:
+    path: "{{ developer_analysis_tools_install_dir }}/{{ item.command }}"
+  loop: "{{ developer_analysis_tools }}"
+  register: developer_analysis_tools_destinations
+
+- name: Inspect configured tool ownership markers
+  ansible.builtin.stat:
+    path: "{{ developer_analysis_tools_state_dir }}/{{ item.command }}.source"
+  loop: "{{ developer_analysis_tools }}"
+  register: developer_analysis_tools_markers
+
+- name: Refuse to overwrite unmanaged tool commands
+  ansible.builtin.assert:
+    that:
+      - not developer_analysis_tools_destinations.results[ansible_loop.index0].stat.exists or developer_analysis_tools_markers.results[ansible_loop.index0].stat.exists
+    fail_msg: >-
+      Refusing to overwrite unmanaged {{ item.command }} at
+      {{ developer_analysis_tools_install_dir }}/{{ item.command }}. Remove or relocate
+      that command, then rerun the playbook so this role can manage it.
+  loop: "{{ developer_analysis_tools }}"
+  loop_control:
+    extended: true
+
+- name: Install configured developer analysis tools
+  ansible.builtin.include_tasks: install-tool.yml
+  loop: "{{ developer_analysis_tools }}"
+  loop_control:
+    loop_var: developer_analysis_tool
+
+- name: Verify configured developer analysis tools are executable
+  ansible.builtin.command:
+    argv:
+      - "{{ developer_analysis_tools_install_dir }}/{{ item.command }}"
+      - "{{ item.version_argument }}"
+  loop: "{{ developer_analysis_tools }}"
+  changed_when: false

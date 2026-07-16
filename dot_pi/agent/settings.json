@@ -12,7 +12,7 @@
     "github-copilot/gpt-5.6-terra"
   ],
   "subagents": {
-    "defaultModel": "openai-codex/gpt-5.6-luna"
+    "defaultModel": "github-copilot/gpt-5.6-luna"
   },
   "packages": [
     "npm:context-mode",

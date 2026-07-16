@@ -1,0 +1,22 @@
+---
+developer_analysis_tools_go_binary: /usr/local/go/bin/go
+developer_analysis_tools_install_dir: /usr/local/bin
+developer_analysis_tools_state_dir: /usr/local/lib/developer-analysis-tools
+
+developer_analysis_tools:
+  - command: govulncheck
+    module: golang.org/x/vuln/cmd/govulncheck
+    version: v1.1.4
+    version_argument: -version
+  - command: staticcheck
+    module: honnef.co/go/tools/cmd/staticcheck
+    version: v0.6.1
+    version_argument: -version
+  - command: gosec
+    module: github.com/securego/gosec/v2/cmd/gosec
+    version: v2.22.10
+    version_argument: -version
+  - command: actionlint
+    module: github.com/rhysd/actionlint/cmd/actionlint
+    version: v1.7.7
+    version_argument: -version

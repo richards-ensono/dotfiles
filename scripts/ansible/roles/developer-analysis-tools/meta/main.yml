@@ -1,0 +1,13 @@
+---
+galaxy_info:
+  author: Richard Slater
+  description: "Provision pinned Go developer analysis tools system-wide."
+  license: "MIT"
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - all
+    - name: Debian
+      versions:
+        - all

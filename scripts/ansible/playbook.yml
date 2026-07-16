@@ -78,6 +78,7 @@
     - bat
     - fzf
     - geerlingguy.go
+    - developer-analysis-tools
     - gh
     - neovim
     - oh-my-posh
