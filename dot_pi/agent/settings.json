@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.80.7",
+  "lastChangelogVersion": "0.80.10",
   "theme": "dark",
   "defaultProvider": "github-copilot",
   "defaultModel": "gpt-5.6-terra",
@@ -20,6 +20,7 @@
     "npm:@juicesharp/rpiv-ask-user-question",
     "npm:@juicesharp/rpiv-todo",
     "npm:pi-subagents",
-    "npm:pi-simplify"
+    "npm:pi-simplify",
+    "git:github.com/richards-ensono/pi-openspec-status"
   ]
 }
