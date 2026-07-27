@@ -1,9 +1,9 @@
 {
-  "lastChangelogVersion": "0.81.1",
+  "lastChangelogVersion": "0.82.0",
   "theme": "dark",
   "defaultProvider": "github-copilot",
   "defaultModel": "gpt-5.6-sol",
-  "defaultThinkingLevel": "medium",
+  "defaultThinkingLevel": "high",
   "enabledModels": [
     "github-copilot/mai-code-1-flash-picker",
     "github-copilot/claude-opus-4.8",
@@ -21,6 +21,8 @@
     "npm:@juicesharp/rpiv-todo",
     "npm:pi-subagents",
     "npm:pi-simplify",
-    "git:github.com/richards-ensono/pi-openspec-status"
+    "git:github.com/richards-ensono/pi-openspec-status",
+    "npm:@narumitw/pi-usage",
+    "npm:@tmustier/pi-usage-extension"
   ]
 }
