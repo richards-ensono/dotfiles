@@ -1,3 +1,14 @@
+## Local Environment
+
+1. Do not assume that if `docker` fails that you can not run containers, check
+   for `podman` and `nerdctl` as alternatives.
+2. This user uses a YubiKey for GPG signing and SSH authentication, if you see
+   a failure to sign a commit, prompt the user to retry, never retry with
+   `--no-gpg-sign` or `--no-verify`.
+3. If `pre-commit` is configured in a repository ensure that you run it before
+   you commit even if it is not configured as a hook. Prompt the user to install
+   with `pre-commit install`.
+
 ## Security
 
 1. Never expose, log, commit, or embed secrets, credentials, tokens, or private
