@@ -1,4 +1,5 @@
 /docs
+/openspec
 
 # ignore if NOT Linux
 {{- if ne .chezmoi.os "linux" }}
