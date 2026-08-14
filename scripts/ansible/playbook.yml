@@ -24,20 +24,20 @@
     - name: Update and upgrade system with recovery
       block:
         - name: Update apt package index
-          apt:
+          ansible.builtin.apt:
             update_cache: true
 
         - name: Upgrade all packages
-          apt:
+          ansible.builtin.apt:
             upgrade: full
 
         - name: Remove unnecessary packages
-          apt:
+          ansible.builtin.apt:
             autoremove: true
             autoclean: true
 
         - name: Install dependant packages
-          apt:
+          ansible.builtin.apt:
             name: "{{ item }}"
             state: present
           loop:
@@ -49,24 +49,28 @@
 
       rescue:
         - name: Remove extra librhash1 that gets picked up incorrectly
-          ansible.builtin.command: sudo dpkg --remove --force-all librhash1
-          ignore_errors: true
+          ansible.builtin.command: dpkg --remove --force-all librhash1
+          register: librhash1_removal
+          changed_when: librhash1_removal.rc == 0
+          failed_when: false
 
         - name: Fix broken apt installs
-          ansible.builtin.command: apt-get install --fix-broken -y
+          ansible.builtin.apt:
+            name: "*"
+            state: fixed
           register: fix_broken_result
-          ignore_errors: true
+          failed_when: false
 
         - name: Retry update apt package index
-          apt:
+          ansible.builtin.apt:
             update_cache: true
 
         - name: Retry upgrade all packages
-          apt:
+          ansible.builtin.apt:
             upgrade: full
 
         - name: Retry remove unnecessary packages
-          apt:
+          ansible.builtin.apt:
             autoremove: true
             autoclean: true
 
@@ -78,10 +82,10 @@
     - bat
     - fzf
     - geerlingguy.go
-    - developer-analysis-tools
+    - developer_analysis_tools
     - gh
     - neovim
-    - oh-my-posh
+    - oh_my_posh
     - pwsh
     - tmux
     - zsh
@@ -93,19 +97,19 @@
   vars:
     rustup_user: "{{ ansible_facts['user_id'] }}"
   roles:
-    - rootless-networking
+    - rootless_networking
     - nvm
     - pnpm
     - uv
     - speckit
     - dotnet
-    - copilot-cli
+    - copilot_cli
 
 - name: Update Neovim Plugins (LazyVim)
   hosts: localhost
   tasks:
     - name: Check if nvim is installed
-      command: which nvim
+      ansible.builtin.command: which nvim
       register: nvim_check
       failed_when: false
       changed_when: false
@@ -116,7 +120,7 @@
       register: lazyvim_config
 
     - name: Run LazyVim sync
-      command: nvim --headless "+Lazy! sync" +qa
+      ansible.builtin.command: nvim --headless "+Lazy! sync" +qa
       when:
         - nvim_check.rc == 0
         - lazyvim_config.stat.exists
@@ -127,4 +131,4 @@
 - name: Run roles for user
   hosts: localhost
   roles:
-    - container-cleanup
+    - container_cleanup

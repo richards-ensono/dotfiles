@@ -1,0 +1,3 @@
+---
+# npm verifies the package tarball using the registry's published integrity metadata.
+# Keep the package name/version coupled in defaults; do not replace with a floating URL.

@@ -13,7 +13,7 @@ Ansible role to build and install the GitHub CLI from source.
 User-overridable variables from `defaults/main.yml`:
 
 ```yaml
-gh_version: "v2.92.0"
+gh_version: "v2.97.0"
 gh_build_dir: "/tmp/gh_build"
 ```
 
@@ -42,7 +42,7 @@ Build a different pinned version:
 - hosts: localhost
   become: true
   vars:
-    gh_version: "v2.91.0"
+    gh_version: "v2.97.0"
   roles:
     - gh
 ```

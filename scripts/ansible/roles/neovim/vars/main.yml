@@ -1,4 +1,5 @@
 ---
-nvim_repo: "https://github.com/neovim/neovim.git"
-nvim_dest: "/usr/local/src/neovim"
-nvim_install_dir: "/usr/local"
+neovim_repo: "https://github.com/neovim/neovim.git"
+neovim_dest: "/usr/local/src/neovim"
+neovim_install_dir: "/usr/local"
+neovim_version: "v0.12.4"

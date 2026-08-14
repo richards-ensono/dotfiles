@@ -20,7 +20,11 @@ end
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not (vim.uv or vim.loop).fs_stat(lazypath) then
 	local lazyrepo = "https://github.com/folke/lazy.nvim.git"
-	local out = vim.fn.system({ "git", "clone", "--filter=blob:none", "--branch=stable", lazyrepo, lazypath })
+	local lazycommit = "85c7ff3711b730b4030d03144f6db6375044ae82"
+	local out = vim.fn.system({ "git", "clone", "--filter=blob:none", lazyrepo, lazypath })
+	if vim.v.shell_error == 0 then
+		out = vim.fn.system({ "git", "-C", lazypath, "checkout", "--detach", lazycommit })
+	end
 	if vim.v.shell_error ~= 0 then
 		vim.api.nvim_echo({
 			{ "Failed to clone lazy.nvim:\n", "ErrorMsg" },
@@ -82,9 +86,9 @@ require("lazy").setup({
 		{ "LazyVim/LazyVim", import = "lazyvim.plugins" },
 		{
 			"CopilotC-Nvim/CopilotChat.nvim",
-			branch = "canary",
+			commit = "451d365928a994cda3505a84905303f790e28df8",
 			dependencies = {
-				{ "github/copilot.vim" },
+				{ "github/copilot.vim", commit = "a12fd5672110c8aa7e3c8419e28c96943ca179be" },
 				{ "nvim-lua/plenary.nvim" },
 			},
 			opts = {},
@@ -143,15 +147,15 @@ require("lazy").setup({
 				})
 			end,
 		},
-		{ "nvim-treesitter/nvim-treesitter", branch = "main", lazy = false, build = ":TSUpdate" },
+		{ "nvim-treesitter/nvim-treesitter", commit = "65a266bf693d3fc856dd341c25edea1a0917a30f", lazy = false, build = ":TSUpdate" },
 		{
 			"nvim-lualine/lualine.nvim",
 			dependencies = { "nvim-tree/nvim-web-devicons" },
 		},
-		{ "nvim-telescope/telescope.nvim", tag = "0.1.8" },
+		{ "nvim-telescope/telescope.nvim", commit = "a0bbec21143c7bc5f8bb02e0005fa0b982edc026" },
 		{
 			"nvim-neo-tree/neo-tree.nvim",
-			branch = "v3.x",
+			commit = "8cdd6b1940f333c1dd085526a9c45b30fb2dbf50",
 			dependencies = {
 				"nvim-lua/plenary.nvim",
 				"nvim-tree/nvim-web-devicons", -- not strictly required, but recommended

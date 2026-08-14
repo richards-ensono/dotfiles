@@ -1,0 +1,63 @@
+---
+- name: Manage GitHub Copilot CLI installation
+  when: copilot_cli_enabled | bool
+  block:
+    - name: Check nvm-managed npm runtime
+      ansible.builtin.command: "{{ nvm_npm_executable }} --version"
+      environment:
+        PATH: "{{ nvm_node_bin }}:{{ ansible_facts['env'].PATH }}"
+      register: copilot_npm_check
+      changed_when: false
+      failed_when: false
+
+    - name: Assert nvm-managed npm runtime is available for Copilot CLI
+      ansible.builtin.assert:
+        that:
+          - copilot_npm_check.rc == 0
+        fail_msg: >-
+          Copilot CLI requires the nvm-managed npm executable at {{ nvm_npm_executable }},
+          but it is unavailable. Ensure the nvm role installed Node.js {{ nvm_node_version }}
+          before running copilot-cli; do not fall back to a bare or OS-provided npm.
+
+    - name: Check if copilot is already installed
+      ansible.builtin.command: "{{ copilot_cli_install_prefix }}/bin/copilot --version"
+      register: copilot_check
+      failed_when: false
+      changed_when: false
+
+    - name: Decide whether GitHub Copilot CLI should be installed
+      ansible.builtin.set_fact:
+        copilot_needs_install: >-
+          {{ copilot_check.rc != 0 or copilot_cli_version not in copilot_check.stdout }}
+
+    - name: Ensure installation directory exists
+      ansible.builtin.file:
+        path: "{{ copilot_cli_install_prefix }}"
+        state: directory
+        mode: "0755"
+      when: copilot_needs_install
+
+    - name: Install the exact GitHub Copilot CLI npm package
+      ansible.builtin.command:
+        argv:
+          - "{{ nvm_npm_executable }}"
+          - install
+          - --global
+          - --prefix
+          - "{{ copilot_cli_install_prefix }}"
+          - "{{ copilot_cli_package }}@{{ copilot_cli_version }}"
+      environment:
+        NPM_CONFIG_UPDATE_NOTIFIER: "false"
+        PATH: "{{ nvm_node_bin }}:{{ ansible_facts['env'].PATH }}"
+      when: copilot_needs_install
+      register: copilot_install_result
+      changed_when: copilot_install_result.rc == 0
+
+    - name: Verify GitHub Copilot CLI installation
+      ansible.builtin.command: "{{ copilot_cli_install_prefix }}/bin/copilot --version"
+      register: copilot_verify
+      changed_when: false
+
+    - name: Display installed version
+      ansible.builtin.debug:
+        msg: "GitHub Copilot CLI installed successfully: {{ copilot_verify.stdout }}"

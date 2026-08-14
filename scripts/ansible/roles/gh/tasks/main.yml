@@ -1,6 +1,6 @@
 ---
 - name: Install build dependencies for GitHub CLI
-  apt:
+  ansible.builtin.apt:
     name:
       - ca-certificates
       - git
@@ -10,23 +10,24 @@
     update_cache: true
 
 - name: Refresh system CA certificates
-  command: update-ca-certificates
+  ansible.builtin.command: update-ca-certificates
   changed_when: false
 
 - name: Check if gh is already installed and matches version
-  command: gh --version
+  ansible.builtin.command: gh --version
   register: gh_current_version
   failed_when: false
   changed_when: false
 
 - name: Create build directory
-  file:
+  ansible.builtin.file:
     path: "{{ gh_build_dir }}"
     state: directory
+    mode: "0755"
   when: gh_current_version.rc != 0 or gh_version not in gh_current_version.stdout
 
 - name: Clone GitHub CLI repository
-  git:
+  ansible.builtin.git:
     repo: "{{ gh_git_repo }}"
     dest: "{{ gh_build_dir }}"
     version: "{{ gh_version }}"
@@ -36,7 +37,7 @@
 
 - name: Build and Install GitHub CLI from source
   become: true
-  shell: |
+  ansible.builtin.shell: |
     export PATH=$PATH:/usr/local/go/bin
     make
     make install prefix=/usr/local
@@ -53,13 +54,15 @@
     GOPROXY: "https://proxy.golang.org,direct"
     GOMODCACHE: "{{ gh_build_dir }}/.gomodcache"
     GOCACHE: "{{ gh_build_dir }}/.gocache"
+  register: gh_build_result
+  changed_when: gh_build_result.rc == 0
   when: gh_current_version.rc != 0 or gh_version not in gh_current_version.stdout
 
 - name: Verify gh installation
-  command: gh --version
+  ansible.builtin.command: gh --version
   register: gh_verify
   changed_when: false
 
 - name: Show gh version
-  debug:
+  ansible.builtin.debug:
     msg: "GitHub CLI installed: {{ gh_verify.stdout_lines[0] }}"

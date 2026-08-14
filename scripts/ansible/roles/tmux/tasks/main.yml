@@ -1,7 +1,7 @@
 ---
 - name: Install dependencies for tmux build
   become: true
-  apt:
+  ansible.builtin.apt:
     name:
       - build-essential
       - autoconf
@@ -19,26 +19,27 @@
   when: ansible_facts['os_family'] == "Debian"
 
 - name: Check if tmux is already installed
-  command: "{{ tmux_install_dir }}/bin/tmux -V"
+  ansible.builtin.command: "{{ tmux_install_dir }}/bin/tmux -V"
   register: tmux_check
   changed_when: false
   failed_when: false
 
 - name: Decide whether tmux needs installation
-  set_fact:
+  ansible.builtin.set_fact:
     tmux_needs_install: "{{ tmux_check.rc != 0 or tmux_version not in tmux_check.stdout }}"
 
 - name: Create source directory
-  file:
+  ansible.builtin.file:
     path: "{{ tmux_src_dir }}"
     state: directory
     mode: "0755"
 
 - name: Download tmux source code
-  get_url:
+  ansible.builtin.get_url:
     url: "https://github.com/tmux/tmux/releases/download/{{ tmux_version }}/tmux-{{ tmux_version }}.tar.gz"
     dest: "{{ tmux_src_dir }}/tmux.tar.gz"
     checksum: "{{ tmux_checksum }}"
+    mode: "0644"
   when: tmux_needs_install
 
 - name: Extract tmux source
@@ -50,7 +51,7 @@
   when: tmux_needs_install
 
 - name: Ensure correct permissions for source directory
-  file:
+  ansible.builtin.file:
     path: "{{ tmux_src_dir }}"
     state: directory
     mode: "0755"
@@ -58,7 +59,7 @@
   when: tmux_needs_install
 
 - name: Run autogen.sh to prepare the build system
-  command:
+  ansible.builtin.command:
     cmd: "./autogen.sh"
     chdir: "{{ tmux_src_dir }}"
   args:
@@ -66,7 +67,7 @@
   when: tmux_needs_install
 
 - name: Configure tmux build
-  command:
+  ansible.builtin.command:
     cmd: "./configure --prefix={{ tmux_install_dir }}"
     chdir: "{{ tmux_src_dir }}"
   args:
@@ -74,7 +75,7 @@
   when: tmux_needs_install
 
 - name: Compile tmux
-  command:
+  ansible.builtin.command:
     cmd: "make"
     chdir: "{{ tmux_src_dir }}"
   args:
@@ -83,57 +84,66 @@
 
 - name: Install tmux
   become: true
-  command:
+  ansible.builtin.command:
     cmd: "make install"
     chdir: "{{ tmux_src_dir }}"
   when: tmux_needs_install
+  changed_when: tmux_install_result.rc == 0
+  register: tmux_install_result
 
 - name: Check tmux-256color terminfo entry
-  command: infocmp -x tmux-256color
+  ansible.builtin.command: infocmp -x tmux-256color
   register: tmux_terminfo_initial
   changed_when: false
   failed_when: false
 
 - name: Download current terminfo source when tmux-256color is missing
-  get_url:
+  ansible.builtin.get_url:
     url: https://invisible-island.net/datafiles/current/terminfo.src.gz
     dest: "{{ tmux_src_dir }}/terminfo.src.gz"
     mode: "0644"
   when: tmux_terminfo_initial.rc != 0
 
 - name: Decompress current terminfo source when tmux-256color is missing
-  shell: "gzip -dc {{ tmux_src_dir | quote }}/terminfo.src.gz > {{ tmux_src_dir | quote }}/terminfo.src"
+  ansible.builtin.shell: "gzip -dc {{ tmux_src_dir | quote }}/terminfo.src.gz > {{ tmux_src_dir | quote }}/terminfo.src"
+  register: tmux_terminfo_decompress
+  changed_when: tmux_terminfo_decompress.rc == 0
   when: tmux_terminfo_initial.rc != 0
 
 - name: Install current tmux-256color terminfo entry when missing
-  command: tic -x -e tmux-256color "{{ tmux_src_dir }}/terminfo.src"
+  ansible.builtin.command: tic -x -e tmux-256color "{{ tmux_src_dir }}/terminfo.src"
+  register: tmux_terminfo_install
+  changed_when: tmux_terminfo_install.rc == 0
   when: tmux_terminfo_initial.rc != 0
 
 - name: Check tmux-256color styled underline terminfo capabilities
-  command: infocmp -x tmux-256color
+  ansible.builtin.command: infocmp -x tmux-256color
   register: tmux_terminfo
   changed_when: false
   failed_when: false
 
 - name: Decide whether tmux-256color terminfo needs styled underline patch
-  set_fact:
+  ansible.builtin.set_fact:
     tmux_terminfo_needs_styled_underline_patch: >-
       {{ tmux_terminfo.rc != 0
         or not (tmux_terminfo.stdout is search('Smulx=.*4:'))
         or not (tmux_terminfo.stdout is search('Setulc=.*58:2:')) }}
 
 - name: Install tmux-256color styled underline terminfo patch
-  shell: |
+  ansible.builtin.shell: |
     set -euo pipefail
-    infocmp -x tmux-256color > {{ tmux_src_dir | quote }}/tmux-256color-styled.src
-    printf '\tSmulx=\\E[4:%%p1%%dm, Setulc=\\E[58:2:%%p1%%{65536}%%/%%d:%%p1%%{256}%%/%%{255}%%&%%d:%%p1%%{255}%%&%%d%%;m,\n' >> {{ tmux_src_dir | quote }}/tmux-256color-styled.src
-    tic -x {{ tmux_src_dir | quote }}/tmux-256color-styled.src
+    styled_src={{ tmux_src_dir | quote }}/tmux-256color-styled.src
+    infocmp -x tmux-256color > "$styled_src"
+    printf '%b\n' '\tSmulx=\\E[4:%%p1%%dm, Setulc=\\E[58:2:%%p1%%{65536}%%/%%d:%%p1%%{256}%%/%%{255}%%&%%d:%%p1%%{255}%%&%%d%%;m,' >> "$styled_src"
+    tic -x "$styled_src"
   args:
     executable: /bin/bash
+  register: tmux_styled_underline_install
+  changed_when: tmux_styled_underline_install.rc == 0
   when: tmux_terminfo_needs_styled_underline_patch
 
 - name: Verify tmux-256color styled underline terminfo capabilities
-  command: infocmp -x tmux-256color
+  ansible.builtin.command: infocmp -x tmux-256color
   register: tmux_terminfo_verify
   changed_when: false
   failed_when: >-
@@ -142,10 +152,10 @@
     or not (tmux_terminfo_verify.stdout is search('Setulc=.*58:2:'))
 
 - name: Verify tmux installation
-  command: "{{ tmux_install_dir }}/bin/tmux -V"
+  ansible.builtin.command: "{{ tmux_install_dir }}/bin/tmux -V"
   register: tmux_version_output
   changed_when: false
 
 - name: Show installed tmux version
-  debug:
+  ansible.builtin.debug:
     msg: "Installed tmux version: {{ tmux_version_output.stdout }}"

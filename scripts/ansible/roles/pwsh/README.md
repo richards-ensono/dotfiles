@@ -13,7 +13,7 @@ Ansible role to install PowerShell on supported Linux systems.
 User-overridable variables from `defaults/main.yml`:
 
 ```yaml
-pwsh_target_version: "7.6.1"
+pwsh_target_version: "7.6.4"
 ```
 
 Internal variables from `vars/main.yml`:
@@ -47,7 +47,7 @@ Install a different pinned version:
 ```yaml
 - hosts: localhost
   vars:
-    pwsh_target_version: "7.6.0"
+    pwsh_target_version: "7.6.4"
   roles:
     - pwsh
 ```

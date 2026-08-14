@@ -90,7 +90,7 @@ System roles:
 
 User roles:
 
-- `rootless-networking`
+- `rootless_networking`
 - `nvm`
 - `bun`
 - `hurricanehrndz.rustup`
@@ -98,9 +98,9 @@ User roles:
 - `uv`
 - `speckit`
 - `dotnet`
-- `copilot-cli`
+- `copilot_cli`
 - `antigravity-cli`
-- `container-cleanup`
+- `container_cleanup`
 
 ### External dependencies
 

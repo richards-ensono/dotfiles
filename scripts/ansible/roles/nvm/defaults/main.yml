@@ -1,4 +1,9 @@
 ---
-nvm_version: "v0.40.4"
+nvm_version: "v0.40.6"
 nvm_install_url: "https://raw.githubusercontent.com/nvm-sh/nvm/{{ nvm_version }}/install.sh"
-nvm_install_checksum: "sha256:4b7412c49960c7d31e8df72da90c1fb5b8cccb419ac99537b737028d497aba4f"
+nvm_dir: "{{ ansible_facts['env'].HOME }}/.nvm"
+nvm_node_version: "v24.19.0"
+nvm_node_bin: "{{ nvm_dir }}/versions/node/{{ nvm_node_version }}/bin"
+nvm_node_executable: "{{ nvm_node_bin }}/node"
+nvm_npm_executable: "{{ nvm_node_bin }}/npm"
+# nvm publishes this installer at a versioned Git ref but does not publish an authoritative artifact checksum.

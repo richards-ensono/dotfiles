@@ -1,51 +1,19 @@
 # nvm
 
-Ansible role to install Node Version Manager from a pinned installer script.
+Ansible role to install Node Version Manager from the versioned upstream GitHub installer script.
 
-## Requirements
-
-- Ansible 2.9 or newer
-- A POSIX shell environment for the installer
-
-## Role Variables
-
-User-overridable variables from `defaults/main.yml`:
+## Defaults
 
 ```yaml
-nvm_version: "v0.40.4"
+nvm_version: "v0.40.6"
 nvm_install_url: "https://raw.githubusercontent.com/nvm-sh/nvm/{{ nvm_version }}/install.sh"
-nvm_install_checksum: "sha256:4b7412c49960c7d31e8df72da90c1fb5b8cccb419ac99537b737028d497aba4f"
+nvm_dir: "{{ ansible_facts['env'].HOME }}/.nvm"
+nvm_node_version: "v24.19.0"
+nvm_node_bin: "{{ nvm_dir }}/versions/node/{{ nvm_node_version }}/bin"
+nvm_node_executable: "{{ nvm_node_bin }}/node"
+nvm_npm_executable: "{{ nvm_node_bin }}/npm"
 ```
 
-## Version Strategy
+The role installs the exact Node.js LTS version through nvm after installing nvm, and verifies both `nvm_node_executable` and `nvm_npm_executable`. These stable paths are intended for dependent Ansible tasks; they must not be replaced with distribution-managed `node` or bare `npm`. If either executable is unavailable, the role fails with an actionable message.
 
-This role downloads a pinned upstream installer script, validates it with a checksum, and runs it once to create `~/.nvm/nvm.sh`.
-
-## Example Playbook
-
-```yaml
-- hosts: localhost
-  roles:
-    - nvm
-```
-
-Install a different pinned version:
-
-```yaml
-- hosts: localhost
-  vars:
-    nvm_version: "v0.40.3"
-    nvm_install_url: "https://raw.githubusercontent.com/nvm-sh/nvm/{{ nvm_version }}/install.sh"
-    nvm_install_checksum: "sha256:replace-with-matching-checksum"
-  roles:
-    - nvm
-```
-
-## Notes
-
-- The installer is removed after execution.
-- Shell integration for `nvm` is handled elsewhere in the Chezmoi-managed shell config.
-
-## License
-
-MIT
+The Git ref is pinned to the selected release. nvm upstream does not publish an authoritative checksum for `install.sh`, so the role uses TLS plus the immutable release ref as a documented bounded exception; it does not invent a checksum. The installer is removed after execution and shell integration remains in the Chezmoi-managed shell config.

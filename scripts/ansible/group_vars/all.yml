@@ -1,15 +1,16 @@
 ---
-packages:
+packages_managed_packages:
   - dnsutils
   - btop
   - yamllint
   - jq
   - yq
   - shellcheck
+  - ansible-lint
   - fd-find
   - libclang-dev
 
-unlisted_packages:
+packages_unlisted_packages:
   - name: Dive
     source: https://github.com/wagoodman/dive/releases/download/v0.13.1/dive_0.13.1_linux_amd64.deb
 

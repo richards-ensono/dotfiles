@@ -4,6 +4,8 @@ This directory provisions the Linux and WSL environment. It does not own dotfile
 
 If a change belongs in `.bashrc`, `.zshrc`, Neovim config, or PowerShell profile content, make that change in the Chezmoi source tree instead of patching the rendered file from Ansible.
 
+Externally sourced role inputs are pinned to exact versions or immutable refs and use publisher checksums where available. APT/YUM package versions remain owned by the target distribution. See [../../docs/COMPONENT_VERSION_INVENTORY.md](../../docs/COMPONENT_VERSION_INVENTORY.md) for the complete boundary and documented upstream exceptions.
+
 ## Entry points
 
 - `playbook.yml` is the main orchestration file.
@@ -20,7 +22,7 @@ The current playbook runs in a simple sequence:
 2. Run preflight checks for supported OS family, package manager, essential commands, and build disk space.
 3. Update the base Debian or Ubuntu system with a recovery block.
 4. Run system roles with `become: true`.
-5. Run user roles without privilege escalation.
+5. Run user roles without privilege escalation; `nvm` installs and verifies the pinned Node.js LTS/npm runtime before `copilot-cli` invokes its nvm-managed npm path.
 6. Sync LazyVim plugins if Neovim is present.
 7. Run final user cleanup roles.
 
@@ -43,7 +45,7 @@ System setup roles:
 
 User setup roles:
 
-- `rootless-networking`
+- `rootless_networking`
 - `nvm`
 - `pnpm`
 - `bun`
@@ -52,9 +54,9 @@ User setup roles:
 - `uv`
 - `speckit`
 - `dotnet`
-- `copilot-cli`
+- `copilot_cli`
 - `antigravity-cli`
-- `container-cleanup`
+- `container_cleanup`
 
 ## Privilege boundaries
 
@@ -75,7 +77,7 @@ Pinned Galaxy roles and collections currently include:
 
 Repository-wide provisioning inputs now live in `group_vars/all.yml`, including package lists, Go settings, and `uv_tools`. Keep role-specific defaults in `defaults/main.yml`.
 
-See `ROLE_VARIABLES.md` for the current role-variable inventory and version strategy notes for the Phase 3 cleanup targets.
+See `ROLE_VARIABLES.md` for the current role-variable inventory. The maintained source/version/integrity record is `../../docs/COMPONENT_VERSION_INVENTORY.md`.
 
 When extending the current layout:
 

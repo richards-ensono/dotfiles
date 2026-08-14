@@ -1,5 +1,16 @@
 ---
-dotnet_version: "10.0"
-dotnet_sdk_version: "10.0"
-dotnet_install_dir: "/usr/share/dotnet"
-dotnet_install_script_url: "https://dot.net/v1/dotnet-install.sh"
+# Exact official SDK assets; the publisher supplies SHA-512 rather than SHA-256.
+dotnet_sdk_version: "10.0.400"
+dotnet_install_dir: "{{ ansible_env.HOME }}/.dotnet"
+dotnet_arch_map:
+  x86_64: "x64"
+  aarch64: "arm64"
+dotnet_download_urls:
+  x64: "https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.400/dotnet-sdk-10.0.400-linux-x64.tar.gz"
+  arm64: "https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.400/dotnet-sdk-10.0.400-linux-arm64.tar.gz"
+dotnet_checksums:
+  x64: "sha512:1033977dd837150e0814cf0c5d5b17ceb63925fda7ba2158b47258a4bd7c048cf82eac3bc1166f3146f53124a3f5fba09db1de1260d2ce96399860303b404b48"
+  arm64: "sha512:a1b45da58e5591fff909a6126ac6bfc1ef9c12bc72c0625f7815e83a82be1a902317ee96926cbbf81324a45c6abf2ed8102a216d0507879cc166159af78d1b77"
+dotnet_arch: "{{ dotnet_arch_map[ansible_architecture] | default('unsupported') }}"
+dotnet_download_url: "{{ dotnet_download_urls[dotnet_arch] | default('') }}"
+dotnet_checksum: "{{ dotnet_checksums[dotnet_arch] | default('') }}"

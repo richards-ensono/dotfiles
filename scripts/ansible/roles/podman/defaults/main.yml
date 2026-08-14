@@ -1,5 +1,5 @@
 ---
-podman_version: "v5.8.2"
+podman_version: "v6.1.0"
 podman_build_dir: "/tmp/podman_build"
 podman_network_handler: "pasta"
 podman_runtime: "crun"

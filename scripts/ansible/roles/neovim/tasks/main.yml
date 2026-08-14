@@ -1,6 +1,6 @@
 ---
 - name: Install dependencies for Neovim build
-  apt:
+  ansible.builtin.apt:
     name:
       - ninja-build
       - gettext
@@ -22,77 +22,86 @@
 - name: Install Yarn via apt
   block:
     - name: Update apt cache
-      apt:
+      ansible.builtin.apt:
         update_cache: true
 
     - name: Install Yarn
-      apt:
+      ansible.builtin.apt:
         name: yarnpkg
         state: present
 
 - name: Check if Neovim is already installed
-  command: nvim --version
+  ansible.builtin.command: nvim --version
   register: neovim_installed
   changed_when: false
   failed_when: false
 
 - name: Clone Neovim repository
-  git:
-    repo: "{{ nvim_repo }}"
-    dest: "{{ nvim_dest }}"
+  ansible.builtin.git:
+    repo: "{{ neovim_repo }}"
+    dest: "{{ neovim_dest }}"
     depth: 1
+    version: "{{ neovim_version }}"
     update: true
   register: neovim_git
 
 - name: Decide whether Neovim needs a rebuild
-  set_fact:
+  ansible.builtin.set_fact:
+    neovim_source_changed: "{{ neovim_git.changed }}"
     neovim_needs_build: "{{ neovim_git.changed or neovim_installed.rc != 0 }}"
 
 - name: Clean Neovim build directory if source changed
-  command:
+  ansible.builtin.command:
     cmd: "make distclean"
-    chdir: "{{ nvim_dest }}"
-  when: neovim_git.changed
+    chdir: "{{ neovim_dest }}"
+  when: neovim_source_changed
+  changed_when: neovim_distclean.rc == 0
+  register: neovim_distclean
   failed_when: false
 
 - name: Build Neovim
-  command:
+  ansible.builtin.command:
     cmd: "make CMAKE_BUILD_TYPE=Release"
-    chdir: "{{ nvim_dest }}"
+    chdir: "{{ neovim_dest }}"
   register: neovim_build
   when: neovim_needs_build
+  changed_when: neovim_build.rc == 0
   failed_when: false
 
 - name: Clean and retry build if failed (stale cache)
-  block:
-    - name: Clean stale build directories
-      file:
-        path: "{{ item }}"
-        state: absent
-      loop:
-        - "{{ nvim_dest }}/.deps"
-        - "{{ nvim_dest }}/build"
-
-    - name: Retry Neovim build
-      command:
-        cmd: "make CMAKE_BUILD_TYPE=Release"
-        chdir: "{{ nvim_dest }}"
   when:
     - neovim_needs_build
     - neovim_build.rc != 0
 
+  block:
+    - name: Clean stale build directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ neovim_dest }}/.deps"
+        - "{{ neovim_dest }}/build"
+
+    - name: Retry Neovim build
+      ansible.builtin.command:
+        cmd: "make CMAKE_BUILD_TYPE=Release"
+        chdir: "{{ neovim_dest }}"
+      register: neovim_retry_build
+      changed_when: neovim_retry_build.rc == 0
 - name: Install Neovim
-  command:
+  ansible.builtin.command:
     cmd: "make install"
-    chdir: "{{ nvim_dest }}"
+    chdir: "{{ neovim_dest }}"
   become: true
   when: neovim_needs_build
+  changed_when: neovim_install.rc == 0
+  register: neovim_install
 
 - name: Verify Neovim installation
-  command: "nvim --version"
-  register: nvim_version
+  ansible.builtin.command: "nvim --version"
+  register: neovim_version_result
   changed_when: false
 
 - name: Show installed Neovim version
-  debug:
-    msg: "{{ nvim_version.stdout }}"
+  ansible.builtin.debug:
+    msg: "{{ neovim_version_result.stdout }}"

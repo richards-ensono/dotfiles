@@ -1,6 +1,6 @@
 ---
 - name: Check if running in WSL
-  command: grep -qi microsoft /proc/version
+  ansible.builtin.command: grep -qi microsoft /proc/version
   register: wsl_check
   changed_when: false
   failed_when: false
@@ -10,35 +10,35 @@
   block:
     - name: Ensure /etc/wsl.conf exists
       become: true
-      file:
+      ansible.builtin.file:
         path: /etc/wsl.conf
         state: touch
         access_time: preserve
         modification_time: preserve
-        mode: '0644'
+        mode: "0644"
 
     - name: Ensure /etc/wsl.conf ends with a newline
       become: true
-      lineinfile:
+      ansible.builtin.lineinfile:
         path: /etc/wsl.conf
-        line: ''
+        line: ""
         state: present
         insertafter: EOF
 
     - name: Ensure [interop] section exists in /etc/wsl.conf
       become: true
-      lineinfile:
+      ansible.builtin.lineinfile:
         path: /etc/wsl.conf
-        line: '[interop]'
+        line: "[interop]"
         state: present
         insertafter: EOF
-        regexp: '^\[interop\]$'
+        regexp: "^\\[interop\\]$"
 
     - name: Set appendWindowsPath = false in /etc/wsl.conf
       become: true
-      lineinfile:
+      ansible.builtin.lineinfile:
         path: /etc/wsl.conf
-        line: 'appendWindowsPath = false'
+        line: "appendWindowsPath = false"
         state: present
-        insertafter: '^\[interop\]$'
-        regexp: '^appendWindowsPath\s*='
+        insertafter: "^\\[interop\\]$"
+        regexp: "^appendWindowsPath\\s*="

@@ -1,7 +1,7 @@
 ---
 - name: Install dependencies for fzf
   become: true
-  apt:
+  ansible.builtin.apt:
     name:
       - git
       - build-essential
@@ -10,16 +10,17 @@
   when: ansible_facts['os_family'] == "Debian"
 
 - name: Clone fzf repository
-  git:
+  ansible.builtin.git:
     repo: "https://github.com/junegunn/fzf.git"
     dest: "{{ fzf_install_dir }}"
     depth: 1
+    version: "{{ fzf_version }}"
     update: true
   register: fzf_clone
   when: not ansible_check_mode
 
 - name: Build and install fzf
-  command:
+  ansible.builtin.command:
     cmd: "./install --all"
     chdir: "{{ fzf_install_dir }}"
   args:
@@ -28,7 +29,7 @@
 
 - name: Ensure fzf is available globally
   become: true
-  file:
+  ansible.builtin.file:
     src: "{{ fzf_install_dir }}/bin/fzf"
     dest: "/usr/local/bin/fzf"
     state: link

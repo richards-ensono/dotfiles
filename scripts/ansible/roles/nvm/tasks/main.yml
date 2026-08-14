@@ -1,10 +1,12 @@
 ---
 - name: Check installed nvm version
   ansible.builtin.shell: |
-    . "{{ ansible_facts['env'].HOME }}/.nvm/nvm.sh"
+    . "{{ nvm_dir }}/nvm.sh"
     nvm --version
   args:
     executable: /bin/bash
+  environment:
+    NVM_DIR: "{{ nvm_dir }}"
   register: nvm_check
   changed_when: false
   failed_when: false
@@ -13,13 +15,17 @@
   ansible.builtin.get_url:
     url: "{{ nvm_install_url }}"
     dest: "/tmp/nvm_install.sh"
-    mode: '0755'
-    checksum: "{{ nvm_install_checksum }}"
+    mode: "0755"
+    checksum: "{{ nvm_install_checksum | default(omit) }}"
   when: nvm_check.rc != 0 or (nvm_version | regex_replace('^v', '')) not in nvm_check.stdout
 
 - name: Install nvm
   ansible.builtin.shell: >
     /tmp/nvm_install.sh
+  environment:
+    NVM_DIR: "{{ nvm_dir }}"
+  register: nvm_install_result
+  changed_when: nvm_install_result.rc == 0
   when: nvm_check.rc != 0 or (nvm_version | regex_replace('^v', '')) not in nvm_check.stdout
 
 - name: Remove nvm installer
@@ -27,3 +33,58 @@
     path: "/tmp/nvm_install.sh"
     state: absent
   when: nvm_check.rc != 0 or (nvm_version | regex_replace('^v', '')) not in nvm_check.stdout
+
+- name: Check selected Node.js runtime
+  ansible.builtin.command: "{{ nvm_node_executable }} --version"
+  register: nvm_node_check
+  changed_when: false
+  failed_when: false
+
+- name: Check selected npm runtime
+  ansible.builtin.command: "{{ nvm_npm_executable }} --version"
+  environment:
+    PATH: "{{ nvm_node_bin }}:{{ ansible_facts['env'].PATH }}"
+  register: nvm_npm_check
+  changed_when: false
+  failed_when: false
+
+- name: Install selected Node.js LTS with nvm
+  ansible.builtin.shell: |
+    . "{{ nvm_dir }}/nvm.sh"
+    nvm install "{{ nvm_node_version }}"
+  args:
+    executable: /bin/bash
+  environment:
+    NVM_DIR: "{{ nvm_dir }}"
+  when:
+    - nvm_node_check.rc != 0 or (nvm_node_check.stdout | trim) != nvm_node_version or nvm_npm_check.rc != 0
+  register: nvm_node_install
+  changed_when: nvm_node_install.rc == 0
+
+- name: Verify selected Node.js runtime
+  ansible.builtin.command: "{{ nvm_node_executable }} --version"
+  register: nvm_node_verify
+  changed_when: false
+  failed_when: false
+
+- name: Verify selected npm runtime
+  ansible.builtin.command: "{{ nvm_npm_executable }} --version"
+  environment:
+    PATH: "{{ nvm_node_bin }}:{{ ansible_facts['env'].PATH }}"
+  register: nvm_npm_verify
+  changed_when: false
+  failed_when: false
+
+- name: Assert the nvm-managed Node.js/npm runtime is available
+  ansible.builtin.assert:
+    that:
+      - nvm_node_verify.rc == 0
+      - (nvm_node_verify.stdout | trim) == nvm_node_version
+      - nvm_npm_verify.rc == 0
+    fail_msg: >-
+      Expected nvm-managed Node.js {{ nvm_node_version }} and npm are unavailable.
+      Expected Node at {{ nvm_node_executable }} and npm at {{ nvm_npm_executable }}.
+      Ensure the nvm install completed successfully and rerun this role; do not use an OS Node/npm package.
+    success_msg: >-
+      nvm-managed Node.js {{ nvm_node_version }} and npm are available at
+      {{ nvm_node_executable }} and {{ nvm_npm_executable }}.

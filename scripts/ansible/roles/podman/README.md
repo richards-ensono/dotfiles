@@ -14,7 +14,7 @@ Ansible role to build and install Podman from source and configure rootless oper
 User-overridable variables from `defaults/main.yml`:
 
 ```yaml
-podman_version: "v5.8.2"
+podman_version: "v6.1.0"
 podman_build_dir: "/tmp/podman_build"
 podman_network_handler: "pasta"
 podman_runtime: "crun"
@@ -54,7 +54,7 @@ Override the pinned version or runtime choices:
 - hosts: localhost
   become: true
   vars:
-    podman_version: "v5.8.1"
+    podman_version: "v6.1.0"
     podman_network_handler: "slirp4netns"
     podman_runtime: "runc"
   roles:

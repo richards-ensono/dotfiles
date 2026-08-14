@@ -7,6 +7,8 @@ This repository manages a cross-platform developer environment with a strict spl
 
 That split is intentional. If a behavior change belongs in a dotfile, change the Chezmoi source tree. Do not patch managed dotfiles from Ansible.
 
+Provisioning pinning boundary: Ansible role inputs own exact versions, immutable source refs, and authoritative artifact checksums for externally sourced tools. APT/YUM packages remain intentionally distribution-managed. Known upstream limitations (such as installer scripts without publisher checksums) are bounded and recorded in [docs/COMPONENT_VERSION_INVENTORY.md](docs/COMPONENT_VERSION_INVENTORY.md); bootstrap downloads happen before provisioning and are not a substitute for those pins.
+
 ## Install
 
 ### Windows
@@ -49,6 +51,7 @@ For broader validation, use the repository tasks and helper scripts:
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the Chezmoi and Ansible boundary, current inventory, and change guardrails.
 - [docs/CHEZMOI_VARIABLES.md](docs/CHEZMOI_VARIABLES.md) for the built-in and repo-specific template variables used by this repo.
 - [docs/ANSIBLE_ROLE_TEMPLATE.md](docs/ANSIBLE_ROLE_TEMPLATE.md) for the preferred Ansible role structure and idempotence checklist.
+- [docs/COMPONENT_VERSION_INVENTORY.md](docs/COMPONENT_VERSION_INVENTORY.md) for externally sourced component versions, integrity metadata, ownership, and bounded exceptions.
 - [scripts/ansible/README.md](scripts/ansible/README.md) for play ordering, role categories, and privilege boundaries.
 
 ## SSH Push URL

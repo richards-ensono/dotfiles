@@ -34,7 +34,7 @@
   ansible.builtin.get_url:
     url: "{{ pnpm_install_url }}"
     dest: "/tmp/pnpm_install.sh"
-    mode: '0755'
+    mode: "0755"
   when: pnpm_needs_install
 
 - name: Install pnpm
@@ -45,6 +45,7 @@
     executable: /bin/bash
   when: pnpm_needs_install
   register: pnpm_install_result
+  changed_when: pnpm_install_result.rc == 0
 
 - name: Remove pnpm installer
   ansible.builtin.file:

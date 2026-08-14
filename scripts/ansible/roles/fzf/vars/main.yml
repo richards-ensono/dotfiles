@@ -1,2 +1,3 @@
 ---
 fzf_install_dir: "/usr/local/src/fzf"
+fzf_version: "v0.74.2"
