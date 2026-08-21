@@ -14,10 +14,10 @@ packages_unlisted_packages:
   - name: Dive
     source: https://github.com/wagoodman/dive/releases/download/v0.13.1/dive_0.13.1_linux_amd64.deb
 
-# geerlingguy.go role variables - Go 1.26.6 (current stable as of August 2026)
-go_version: "1.26.6"
+# geerlingguy.go role variables - Go 1.27.0 (current stable as of August 2026)
+go_version: "1.27.0"
 go_install_clean: true
-go_checksum: "708effb774be8237570d0add163225abbdfaf4fca28b2611df167beba4feef89"
+go_checksum: "675c26c449cbb18fc24b74650de1eabbae6e16f64326fd85a283fb3b58280685"
 
 uv_tools:
   - pre-commit
