@@ -1,3 +1,7 @@
 .github/prompts/opsx-*
 .github/skills/openspec-*
-.pi/
+.pi/*
+!.pi/skills/
+.pi/skills/*
+!.pi/skills/update-pinned-component-versions/
+!.pi/skills/update-pinned-component-versions/**

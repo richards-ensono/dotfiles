@@ -105,6 +105,12 @@
     - dotnet
     - copilot_cli
 
+- name: Update pi
+  hosts: localhost
+  tasks:
+    - name: Update all pi components
+      ansible.builtin.command: pi update --all
+
 - name: Update Neovim Plugins (LazyVim)
   hosts: localhost
   tasks:

@@ -23,8 +23,9 @@ The current playbook runs in a simple sequence:
 3. Update the base Debian or Ubuntu system with a recovery block.
 4. Run system roles with `become: true`.
 5. Run user roles without privilege escalation; `nvm` installs and verifies the pinned Node.js LTS/npm runtime before `copilot-cli` invokes its nvm-managed npm path.
-6. Sync LazyVim plugins if Neovim is present.
-7. Run final user cleanup roles.
+6. Update installed pi components.
+7. Sync LazyVim plugins if Neovim is present.
+8. Run final user cleanup roles.
 
 ## Role categories
 

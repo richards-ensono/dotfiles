@@ -12,7 +12,7 @@ This is the review boundary for externally sourced provisioning inputs. Role var
 | Node.js | Official Node.js release index, current non-prerelease LTS `v24.19.0` (`Krypton`) | nvm-managed Node.js/npm runtime | Installed by the nvm role from the official release selected at `https://nodejs.org/dist/index.json`; dependent tasks use the exact `~/.nvm/versions/node/v24.19.0/bin/npm` path rather than OS Node/npm |
 | GitHub Copilot CLI | Official npm registry, `@github/copilot@1.0.80` | npm package tarball | Invokes the nvm-managed npm executable; npm verifies registry `dist.integrity` (`sha512-6tf93ZF56KOiTTAjK/UhLZkl1W543IzaTQly288kockJZFswpRTnQEI00Yvacpb39DTvTYu3/ha9SeKpo/pgZQ==`); package-manager behavior is intentional |
 | GitHub CLI | `cli/cli` source tag `v2.97.0` | source build | Git tag; build dependencies/modules remain publisher/package-manager owned |
-| Podman | `containers/podman` source tag `v6.1.0` | source build | Git tag; `containers/image` policy and registries files use immutable commit `df7e80d2d19872b61f352a8a182ec934dc0c2346` |
+| Podman | `containers/podman` source tag `v6.1.1` | source build | Git tag; `containers/image` policy and registries files use immutable commit `08ce6b4207e7b151ea1c2830cdb1d4473cfd12aa`; Netavark and Aardvark-DNS `2.1.0` Linux x64 assets have configured SHA-256 values |
 | PowerShell | Microsoft, GitHub release `v7.6.4` | Debian amd64/arm64 package | Exact release URL; no authoritative checksum was supplied by the verified publisher metadata, so the role records a bounded TLS/source exception |
 | tmux | upstream release `3.7b` | source tarball | SHA-256 `87f2e99e3b685973f2ca002ffd6ed7e51a5744f7009daae5a15670b6d532db96` |
 | nvm | `nvm-sh/nvm` Git ref `v0.40.6` | `install.sh` at the versioned ref; installs Node.js LTS `v24.19.0` | Upstream does not publish an authoritative installer checksum; TLS plus immutable ref is the documented exception. The role asserts the exact nvm-managed Node.js and npm executables before dependent roles run |
@@ -28,6 +28,18 @@ This is the review boundary for externally sourced provisioning inputs. Role var
 - SpecKit is an upstream exception: the role's `uv tool install specify-cli --from git+https://github.com/github/spec-kit.git` has no publisher version/ref in the current mechanism. It is not presented as reproducible and no checksum is fabricated.
 - Antigravity CLI is not an active role in this checkout. Its known upstream installer (`https://antigravity.google/cli/install.sh`) has no selected stable version or publisher checksum; downstream enablement must retain that explicit exception.
 - Cargo packages (`tree-sitter-cli`, `ripgrep`, `fd-find`, `zoxide`, `du-dust`, `procs`, `gping`) are not active role inputs here. Downstream use must specify exact crates.io versions; crates.io checksum/integrity is package-manager owned.
+
+## Repository-wide pin review coverage
+
+The provisioning table above is not the whole review boundary. The version-maintenance skill must also review these tracked pins and their coupled integrity controls:
+
+- CI pins: GitHub Actions, Python, `pre-commit`, Ansible, Ansible Lint, and the checksum-verified Chezmoi Debian package in `.github/workflows/ci.yml`.
+- Pre-commit hook revisions in `.pre-commit-config.yaml`.
+- The BusyBox OCI digest used by `scripts/ansible/tests/podman-compose-network.yml`.
+- Lazy.nvim's bootstrap commit, five explicit Neovim plugin commits, and all 40 plugin commits in `.chezmoitemplates/nvim/lazy-lock.json`. The lockfile is an immutable Git-commit inventory, not a direct-download checksum manifest.
+- Version-looking values that do *not* select external component content—such as Oh My Posh theme schema versions and Ansible platform compatibility ranges—are excluded from release maintenance.
+
+The 2026-09 structural review corrected this inventory's stale Podman tag (`v6.1.0` to the configured `v6.1.1`) and `containers/image` commit. It identified no untracked package-manager manifest (such as `package.json`, `Cargo.toml`, `go.mod`, or Python dependency manifest) at the repository root. A future release review must query authoritative upstream sources at execution time; this document is an inventory, not evidence that a release is still current.
 
 ## Ownership and bounded exceptions
 
