@@ -1,0 +1,70 @@
+---
+name: CI
+
+"on":
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pre-commit:
+    name: Pre-commit checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@v7.0.0
+        with:
+          python-version: "3.14"
+
+      - name: Install system linters
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes chezmoi shellcheck
+
+      - name: Install pre-commit
+        run: python -m pip install --disable-pip-version-check pre-commit==4.6.2
+
+      - name: Run configured checks
+        run: pre-commit run --all-files --show-diff-on-failure
+
+  ansible:
+    name: Ansible validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@v7.0.0
+        with:
+          python-version: "3.14"
+
+      - name: Install Ansible tooling
+        run: |
+          python -m pip install --disable-pip-version-check \
+            ansible==14.3.1 \
+            ansible-lint==26.8.0
+
+      - name: Install Ansible Galaxy requirements
+        working-directory: scripts/ansible
+        run: ansible-galaxy install -r requirements.yml
+
+      - name: Check playbook syntax
+        working-directory: scripts/ansible
+        run: ansible-playbook playbook.yml -i inventory/hosts.yml --syntax-check
+
+      - name: Lint Podman role
+        working-directory: scripts/ansible
+        run: ansible-lint roles/podman
+
+      - name: Run focused Podman provisioning checks
+        working-directory: scripts/ansible
+        run: python3 tests/validate_podman_network_helpers.py

@@ -1,6 +1,5 @@
 ---
 podman_git_repo: "https://github.com/containers/podman.git"
-podman_containers_image_ref: "df7e80d2d19872b61f352a8a182ec934dc0c2346"
 
 # Package mapping for network handlers and runtimes
 podman_package_map:

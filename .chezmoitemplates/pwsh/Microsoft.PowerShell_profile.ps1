@@ -41,4 +41,3 @@ if (Test-Path $openSshExecutable) {
 
 Set-PSReadlineKeyHandler -Key ctrl+d -Function DeleteCharOrExit
 Set-PSReadlineKeyHandler -Key ctrl+l -Function ClearScreen
-
