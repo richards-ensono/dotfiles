@@ -2,4 +2,5 @@
 neovim_repo: "https://github.com/neovim/neovim.git"
 neovim_dest: "/usr/local/src/neovim"
 neovim_install_dir: "/usr/local"
-neovim_version: "v0.12.4"
+# v0.12.5 resolves to this immutable annotated-tag target.
+neovim_version: "5885a30e1e1225349079e7a1c4a3848aa8e43e42"

@@ -43,6 +43,10 @@
     depth: 1
     version: "{{ neovim_version }}"
     update: true
+    # Release tags such as `stable` are intentionally mutable upstream; force
+    # their local refs to update so an unrelated stale tag cannot block the
+    # immutable commit checkout above.
+    force: true
   register: neovim_git
 
 - name: Check Neovim clean startup

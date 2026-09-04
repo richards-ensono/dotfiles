@@ -1,3 +1,5 @@
 ---
-gh_version: "v2.97.0"
+gh_release_version: "v2.100.0"
+# gh_release_version resolves to this immutable lightweight-tag commit.
+gh_version: "45437bc7eeeb3359bbfddd1742f79de7652fd3e2"
 gh_build_dir: "/tmp/gh_build"

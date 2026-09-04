@@ -2,5 +2,5 @@
 # Install the official npm distribution of GitHub Copilot CLI.
 copilot_cli_enabled: true
 copilot_cli_package: "@github/copilot"
-copilot_cli_version: "1.0.80"
+copilot_cli_version: "1.0.82"
 copilot_cli_install_prefix: "{{ ansible_env.HOME }}/.local"
