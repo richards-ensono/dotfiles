@@ -25,9 +25,18 @@ jobs:
           python-version: "3.14"
 
       - name: Install system linters
+        env:
+          CHEZMOI_VERSION: "2.72.1"
+          CHEZMOI_SHA256: "168063d2bbde78522751b27d0c523d41c612640c5b568d156d20a50240c827ba"
         run: |
           sudo apt-get update
-          sudo apt-get install --yes chezmoi shellcheck
+          sudo apt-get install --yes shellcheck
+          curl --fail --location --silent --show-error \
+            --output chezmoi.deb \
+            "https://github.com/twpayne/chezmoi/releases/download/v${CHEZMOI_VERSION}/chezmoi_${CHEZMOI_VERSION}_linux_amd64.deb"
+          echo "${CHEZMOI_SHA256}  chezmoi.deb" | sha256sum --check --strict
+          sudo dpkg --install chezmoi.deb
+          rm chezmoi.deb
 
       - name: Install pre-commit
         run: python -m pip install --disable-pip-version-check pre-commit==4.6.2
