@@ -80,7 +80,7 @@ scripts/ansible/tests/test-podman-compose-network.sh
 
 The Compose fixture uses an immutable BusyBox image digest and removes its project network and resources on exit. The role installs the `podman-compose` provider used by `podman compose`.
 - Configuration is downloaded and validated in a staging directory. Existing managed configuration is backed up and restored if download, validation, or replacement fails.
-- Rootless configuration includes `subuid` and `subgid` entries, user container config, and the unprivileged user namespace sysctl when available.
+- Rootless configuration includes `subuid` and `subgid` entries, a user-owned `storage.conf` (`~/.local/share/containers/storage` with a per-user `/run/user/<uid>/containers` runtime directory), user container config, and the unprivileged user namespace sysctl when available. It uses the installed `fuse-overlayfs` helper for rootless overlay storage.
 - On WSL, the role forces the Podman firewall driver to `iptables`.
 
 ## License

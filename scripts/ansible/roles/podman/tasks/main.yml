@@ -496,6 +496,23 @@
     group: "{{ podman_user }}"
     mode: '0755'
 
+# A user-level storage.conf overrides every system storage.conf. Set both paths
+# explicitly so rootless Podman never falls back to root-owned /var/lib storage.
+- name: Configure rootless Podman storage
+  ansible.builtin.copy:
+    dest: "{{ podman_user_home }}/.config/containers/storage.conf"
+    content: |
+      [storage]
+      driver = "overlay"
+      runroot = "/run/user/{{ podman_user_uid }}/containers"
+      graphroot = "{{ podman_user_home }}/.local/share/containers/storage"
+
+      [storage.options.overlay]
+      mount_program = "/usr/bin/fuse-overlayfs"
+    owner: "{{ podman_user }}"
+    group: "{{ podman_user }}"
+    mode: "0644"
+
 - name: Configure Podman runtime and network handler
   ansible.builtin.copy:
     dest: "{{ podman_user_home }}/.config/containers/containers.conf"

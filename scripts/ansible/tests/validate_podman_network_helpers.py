@@ -22,6 +22,15 @@ class PodmanNetworkHelperProvisioningTests(unittest.TestCase):
         self.assertIn('podman_compose_package: "podman-compose"', DEFAULTS)
         self.assertIn('- "{{ podman_compose_package }}"', TASKS)
 
+    def test_rootless_storage_uses_user_owned_locations(self) -> None:
+        storage = TASKS.index("Configure rootless Podman storage")
+        runtime_check = TASKS.index("Inspect active rootless Netavark helper")
+        self.assertLess(storage, runtime_check)
+        self.assertIn('dest: "{{ podman_user_home }}/.config/containers/storage.conf"', TASKS)
+        self.assertIn('runroot = "/run/user/{{ podman_user_uid }}/containers"', TASKS)
+        self.assertIn('graphroot = "{{ podman_user_home }}/.local/share/containers/storage"', TASKS)
+        self.assertIn('mount_program = "/usr/bin/fuse-overlayfs"', TASKS)
+
     def test_existing_matching_helpers_are_preserved_until_validation(self) -> None:
         preserve = TASKS.index("Preserve existing managed Podman network helpers")
         stage = TASKS.index("Stage validated Podman network helper replacements")
