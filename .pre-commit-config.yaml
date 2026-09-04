@@ -23,7 +23,7 @@ repos:
         types: [shell]
       - id: chezmoi-template-check
         name: Check chezmoi templates
-        entry: bash -c 'for f in "$@"; do chezmoi execute-template < "$f" > /dev/null || exit 1; done' --
+        entry: bash -c 'for f in "$@"; do chezmoi execute-template --source "$PWD" < "$f" > /dev/null || exit 1; done' --
         language: system
         files: \.tmpl$
         pass_filenames: true
