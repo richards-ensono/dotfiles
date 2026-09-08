@@ -28,6 +28,12 @@ The main guardrail is simple: Ansible must not patch files that are managed by C
 - `dot_config/powershell/Microsoft.PowerShell_profile.ps1.tmpl` and `readonly_Documents/PowerShell/Microsoft.PowerShell_profile.ps1.tmpl` both delegate to `.chezmoitemplates/pwsh/Microsoft.PowerShell_profile.ps1`.
 - Small, path-specific templates can stay inline. Shared large configs should continue to be centralized under `.chezmoitemplates/`.
 
+### Pi configuration ownership
+
+Pi owns the mutable contents of `~/.pi/agent`, including authentication and trust data, sessions and missions, extension installation trees, changelog metadata, and directory permissions. Chezmoi does not manage that directory directly.
+
+`.chezmoitemplates/pi/settings.json` is the declarative Pi fragment owned by this repository. It is restricted to model preferences (`defaultProvider`, `defaultModel`, `defaultThinkingLevel`, `enabledModels`, and `subagents.defaultModel`) and the extension `packages` declaration. `run_after_merge-pi-settings.js.tmpl` overlays only those keys into `~/.pi/agent/settings.json` after each apply, preserving all other Pi settings. Add a key to this fragment only when it is a stable, repository-owned preference; do not add Pi-generated state.
+
 ### Shell startup ownership
 
 - `dot_profile` sources `dot_bashrc` for bash login shells and otherwise sources `dot_config/shell_common`.

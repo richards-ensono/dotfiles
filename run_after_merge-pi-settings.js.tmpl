@@ -1,0 +1,65 @@
+#!/usr/bin/env node
+
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+
+const ownedSettings = {{ include ".chezmoitemplates/pi/settings.json" | quote }};
+const agentDir = path.join(process.env.HOME || os.homedir(), ".pi", "agent");
+const settingsPath = path.join(agentDir, "settings.json");
+
+function parseObject(json, source) {
+	let value;
+	try {
+		value = JSON.parse(json);
+	} catch (error) {
+		throw new Error(`Cannot parse ${source} as JSON: ${error.message}`);
+	}
+
+	if (value === null || Array.isArray(value) || typeof value !== "object") {
+		throw new Error(`${source} must contain a JSON object`);
+	}
+
+	return value;
+}
+
+function readExistingSettings() {
+	try {
+		return parseObject(fs.readFileSync(settingsPath, "utf8"), settingsPath);
+	} catch (error) {
+		if (error.code === "ENOENT") {
+			return {};
+		}
+		throw error;
+	}
+}
+
+try {
+	const existingSettings = readExistingSettings();
+	const managedSettings = parseObject(ownedSettings, "managed Pi settings fragment");
+	const mergedSettings = {
+		...existingSettings,
+		...managedSettings,
+		subagents: {
+			...existingSettings.subagents,
+			...managedSettings.subagents,
+		},
+	};
+
+	fs.mkdirSync(agentDir, { recursive: true, mode: 0o700 });
+	const temporaryPath = path.join(
+		agentDir,
+		`.settings.json.chezmoi-${process.pid}-${Date.now()}`,
+	);
+	fs.writeFileSync(temporaryPath, `${JSON.stringify(mergedSettings, null, 2)}\n`, "utf8");
+
+	try {
+		fs.renameSync(temporaryPath, settingsPath);
+	} catch (error) {
+		fs.rmSync(temporaryPath, { force: true });
+		throw error;
+	}
+} catch (error) {
+	console.error(`Pi settings synchronization failed: ${error.message}`);
+	process.exitCode = 1;
+}
