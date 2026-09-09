@@ -17,11 +17,11 @@
     "npm:@juicesharp/rpiv-ask-user-question",
     "npm:@juicesharp/rpiv-todo",
     "npm:@narumitw/pi-usage",
+    "npm:@narumitw/pi-chrome-devtools",
     "npm:@tmustier/pi-usage-extension",
     "npm:context-mode",
     "npm:pi-simplify",
     "npm:pi-subagents",
-    "npm:pi-web-access",
-    "pi install npm:@vigolium/piolium"
+    "npm:pi-web-access"
   ]
 }
