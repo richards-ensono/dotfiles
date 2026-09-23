@@ -20,7 +20,7 @@ ansible-galaxy install -r requirements.yml > /dev/null
 echo "=== First playbook run ==="
 ansible-playbook playbook.yml -i inventory/hosts.yml -c local | tee /tmp/ansible-first-run.log
 
-for command_name in fd govulncheck staticcheck gosec actionlint; do
+for command_name in fd bwrap govulncheck staticcheck gosec actionlint; do
   command_path="$(command -v "$command_name" || true)"
 
   if [ -z "$command_path" ]; then
@@ -28,9 +28,9 @@ for command_name in fd govulncheck staticcheck gosec actionlint; do
     exit 1
   fi
 
-  version_argument="--version"
-  if [ "$command_name" != "fd" ]; then
-    version_argument="-version"
+  version_argument="-version"
+  if [ "$command_name" = "fd" ] || [ "$command_name" = "bwrap" ]; then
+    version_argument="--version"
   fi
 
   if ! "$command_path" "$version_argument" >/dev/null 2>&1; then
