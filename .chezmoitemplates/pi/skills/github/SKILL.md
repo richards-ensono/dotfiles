@@ -18,6 +18,30 @@ pages or APIs. A browser opened by `gh auth login` or `gh auth refresh` solely
 for *authentication/authorization* is the exception, not a way to query GitHub.
 Do not use `--web` variants of `gh` commands for queries.
 
+## Prefer GitHub platform features
+
+When configuring or reviewing a repository, prefer supported GitHub-native
+features over custom automation or legacy controls:
+
+- **Dependabot:** Group compatible dependency updates as much as practical to
+  reduce PR fatigue. Configure a **5-day cooldown** for eligible version updates
+  to allow time for newly published packages to be assessed for supply-chain
+  risks. Do not delay urgent security fixes or force incompatible updates into
+  the same group; account for ecosystems and update types where grouping or
+  cooldowns are not supported.
+- **GitHub Advanced Security / code scanning:** Prefer SARIF output from tools
+  such as Trivy and OSV-Scanner in CI, and submit findings to GitHub code
+  scanning with `github/codeql-action/upload-sarif` rather than maintaining a
+  separate findings channel. Grant the upload job only the permissions it
+  needs, and check that code scanning is available for the repository.
+- **CodeQL:** Prefer CodeQL for SAST on supported languages. Check whether
+  CodeQL is enabled when assessing a repository; expect it as the default and
+  recommend enabling it when missing, subject to repository eligibility and
+  existing scan coverage.
+- **Branch and tag protection:** Prefer repository or organization **rulesets**
+  over legacy branch protection rules or tag protection rules when adding or
+  updating protections. Preserve existing protections during any migration.
+
 ## Before accessing GitHub
 
 1. Determine the target **host** and **repository** from the user's request,
