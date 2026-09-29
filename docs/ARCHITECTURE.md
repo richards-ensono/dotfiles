@@ -30,7 +30,7 @@ The main guardrail is simple: Ansible must not patch files that are managed by C
 
 ### Pi configuration ownership
 
-Pi owns the mutable contents of `~/.pi/agent`, including authentication and trust data, sessions and missions, extension installation trees, changelog metadata, and directory permissions. Chezmoi does not manage that directory directly.
+Pi owns the mutable contents of `~/.pi/agent`, including authentication and trust data, sessions and missions, extension installation trees, changelog metadata, and directory permissions. Chezmoi does not manage that directory directly. On Linux, `run_after_sync-pi-skills.js.tmpl` copies only the author-owned files from `.chezmoitemplates/pi/skills/` into `~/.pi/agent/skills/<name>/`, preserving existing agent and skills-directory permissions and unrelated Pi state. New directories are created private; existing directory modes are not changed. The script skips unchanged files on repeated applies. Platform-specific skills are installed only on Linux.
 
 `.chezmoitemplates/pi/settings.json` is the declarative Pi fragment owned by this repository. It is restricted to model preferences (`defaultProvider`, `defaultModel`, `defaultThinkingLevel`, `enabledModels`, and `subagents.defaultModel`) and the extension `packages` declaration. `run_after_merge-pi-settings.js.tmpl` overlays only those keys into `~/.pi/agent/settings.json` after each apply, preserving all other Pi settings. Add a key to this fragment only when it is a stable, repository-owned preference; do not add Pi-generated state.
 
