@@ -16,6 +16,9 @@ if (process.platform === "linux") {
 			"SKILL.md": {{ include ".chezmoitemplates/pi/skills/podman-containers/SKILL.md" | quote }},
 			"podman-run.sh": {{ include ".chezmoitemplates/pi/skills/podman-containers/executable_podman-run.sh" | quote }},
 		},
+		"github": {
+			"SKILL.md": {{ include ".chezmoitemplates/pi/skills/github/SKILL.md" | quote }},
+		},
 	};
 
 	function ensureDirectory(dir) {

@@ -149,9 +149,14 @@ class SandboxSkillsTests(unittest.TestCase):
             self.assertEqual((agent / "settings.json").read_text(encoding="utf-8"), "untouched")
         runner = agent / "skills/bubblewrap-sandbox/bwrap-run.sh"
         self.assertEqual(runner.stat().st_mode & 0o777, 0o755)
+        github = agent / "skills/github/SKILL.md"
+        self.assertEqual(github.stat().st_mode & 0o777, 0o644)
+        self.assertEqual(github.read_bytes(), (SKILLS / "github/SKILL.md").read_bytes())
         previous = runner.stat().st_mtime_ns
+        github_previous = github.stat().st_mtime_ns
         subprocess.run(["node", str(script)], env=self.env, check=True)
         self.assertEqual(runner.stat().st_mtime_ns, previous)
+        self.assertEqual(github.stat().st_mtime_ns, github_previous)
         runner.unlink()
         runner.symlink_to(agent / "settings.json")
         result = subprocess.run(["node", str(script)], env=self.env, capture_output=True, text=True)
