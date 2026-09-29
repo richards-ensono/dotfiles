@@ -52,8 +52,47 @@
 
 # containers/image does not publish individual file checksums. The reviewed
 # full commit in these TLS URLs is the documented integrity boundary.
+- name: Determine whether reviewed container-image configuration needs replacement
+  become: true
+  block:
+    - name: Retrieve reviewed default policy configuration
+      ansible.builtin.uri:
+        url: "{{ podman_policy_source_url }}"
+        return_content: true
+      register: podman_reviewed_policy
+      changed_when: false
+
+    - name: Retrieve reviewed registries configuration
+      ansible.builtin.uri:
+        url: "{{ podman_registries_source_url }}"
+        return_content: true
+      register: podman_reviewed_registries
+      changed_when: false
+
+    - name: Inspect installed container-image configurations
+      ansible.builtin.stat:
+        path: "{{ item }}"
+        checksum_algorithm: sha256
+      loop:
+        - /etc/containers/policy.json
+        - /etc/containers/registries.conf
+      register: podman_installed_container_image_configurations
+
+    - name: Decide whether container-image configuration needs replacement
+      ansible.builtin.set_fact:
+        podman_container_image_configuration_needs_update: >-
+          {{
+            not podman_installed_container_image_configurations.results[0].stat.exists
+            or not podman_installed_container_image_configurations.results[1].stat.exists
+            or podman_installed_container_image_configurations.results[0].stat.checksum
+              != (podman_reviewed_policy.content | hash('sha256'))
+            or podman_installed_container_image_configurations.results[1].stat.checksum
+              != (podman_reviewed_registries.content | hash('sha256'))
+          }}
+
 - name: Install reviewed container-image configuration with rollback
   become: true
+  when: podman_container_image_configuration_needs_update
   block:
     - name: Create a staging directory for container-image configuration
       ansible.builtin.tempfile:
@@ -245,7 +284,7 @@
   register: podman_build_result
   changed_when: podman_build_result.rc == 0
 
-- name: Provision verified Podman network helpers
+- name: Determine whether verified Podman network helpers need replacement
   become: true
   block:
     - name: Reject unsupported Podman helper architecture
@@ -261,6 +300,47 @@
       ansible.builtin.set_fact:
         podman_network_helpers: "{{ podman_network_helper_architectures[ansible_architecture] }}"
 
+    - name: Inspect existing managed Podman network helpers
+      ansible.builtin.stat:
+        path: "{{ podman_network_helper_directory }}/{{ item.key }}"
+        follow: false
+      register: podman_network_helper_paths
+      loop: "{{ podman_network_helpers | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+
+    - name: Inspect existing managed Podman helper versions
+      ansible.builtin.command:
+        argv:
+          - "{{ podman_network_helper_directory }}/{{ item.item.key }}"
+          - --version
+      changed_when: false
+      failed_when: false
+      register: podman_existing_helper_versions
+      when: item.stat.exists
+      loop: "{{ podman_network_helper_paths.results }}"
+      loop_control:
+        label: "{{ item.item.key }}"
+
+    - name: Initialize Podman helper replacement decision
+      ansible.builtin.set_fact:
+        podman_network_helpers_need_update: false
+
+    - name: Mark mismatched Podman helpers for replacement
+      ansible.builtin.set_fact:
+        podman_network_helpers_need_update: true
+      when:
+        - not item.item.stat.exists
+          or item.rc != 0
+          or item.stdout is not search(item.item.item.value.version)
+      loop: "{{ podman_existing_helper_versions.results }}"
+      loop_control:
+        label: "{{ item.item.item.key }}"
+
+- name: Provision verified Podman network helpers
+  become: true
+  when: podman_network_helpers_need_update
+  block:
     - name: Create Podman network-helper staging directory
       ansible.builtin.tempfile:
         state: directory
@@ -538,9 +618,13 @@
     mode: '0644'
   when: ansible_virtualization_type == "wsl"
 
+# Containers that run the playbook as root lack a rootless runtime directory.
+# Keep this lifecycle check for real non-root users; helper artifact validation above
+# still runs in every environment.
 - name: Validate rootless Podman network-helper lifecycle
   become: true
   become_user: "{{ podman_user }}"
+  when: podman_user_uid | int != 0
   environment:
     XDG_RUNTIME_DIR: "/run/user/{{ podman_user_uid }}"
   block:

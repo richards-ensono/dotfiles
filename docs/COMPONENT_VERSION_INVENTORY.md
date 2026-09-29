@@ -41,6 +41,35 @@ The provisioning table above is not the whole review boundary. The version-maint
 
 The 2026-09 structural review corrected this inventory's stale Podman tag (`v6.1.0` to the configured `v6.1.1`) and `containers/image` commit. It identified no untracked package-manager manifest (such as `package.json`, `Cargo.toml`, `go.mod`, or Python dependency manifest) at the repository root. A future release review must query authoritative upstream sources at execution time; this document is an inventory, not evidence that a release is still current.
 
+## 2026-09-28 authoritative review ledger
+
+This ledger records the candidate selection and disposition from the authoritative-source review performed for `add-bubblewrap-provisioning`. A `hold` is intentional: no operational pin changes until the candidate's exact asset, compatibility constraints, and publisher integrity metadata are all independently verified.
+
+| Family | Current selection | Latest candidate reviewed | Disposition and evidence |
+|:--|:--|:--|:--|
+| Go | `1.27.1` | `1.27.1` | Already current; [go.dev JSON](https://go.dev/dl/?mode=json) reports this stable release. |
+| Node.js | `v24.20.0` | `v24.21.0` LTS | Compatibility/integrity hold pending a new `SHASUMS256.txt` asset verification. [Official index](https://nodejs.org/dist/index.json). |
+| uv | `0.12.9` | `0.12.20` | Integrity hold pending verification of the exact Linux assets against Astral's `sha256.sum`. [Official release](https://github.com/astral-sh/uv/releases/tag/0.12.20). |
+| Oh My Posh | `v31.1.2` | `v31.4.0` | Integrity hold pending verification of both supported architecture assets against `checksums.txt`. [Official release](https://github.com/JanDeDobbeleer/oh-my-posh/releases/tag/v31.4.0). |
+| .NET SDK | `10.0.400` | not reselected | Compatibility hold; the current Microsoft SHA-512 evidence remains valid, but a newer candidate was not configured without a fresh release-manifest and dual-architecture verification. |
+| GitHub Copilot CLI | `1.0.82` | `1.0.89` | Package-integrity hold pending exact-version npm `dist.integrity` and Node-engine review. [Official npm metadata](https://registry.npmjs.org/@github%2fcopilot/latest). |
+| pnpm | `12.3.4` | `12.6.0` | Exception retained: npm metadata identifies the candidate, but the official installer has no authoritative content checksum. [Official npm metadata](https://registry.npmjs.org/pnpm/latest). |
+| nvm | `v0.40.6` | `v0.40.8` | Exception retained: the installer has no publisher checksum; do not update it in place. [Official release](https://github.com/nvm-sh/nvm/releases/tag/v0.40.8). |
+| GitHub CLI | `v2.100.0` | `v2.101.0` | Git-source compatibility hold pending tag-to-commit resolution and build validation. [Official release](https://github.com/cli/cli/releases/tag/v2.101.0). |
+| Podman | `v6.1.1` | `v6.1.2` | Git-source compatibility hold pending Podman/network-stack compatibility review and source-build validation. [Official release](https://github.com/containers/podman/releases/tag/v6.1.2). |
+| Netavark and Aardvark-DNS | matching `v2.1.0` pair | matching `v2.1.0` pair | Already current and locally verified against both publisher `sha256sum` manifests; retained because it is the compatible pair exercised successfully on Debian Trixie. [Netavark](https://github.com/containers/netavark/releases/tag/v2.1.0), [Aardvark-DNS](https://github.com/containers/aardvark-dns/releases/tag/v2.1.0). |
+| PowerShell | `v7.6.4` | `v7.6.6` | Integrity hold pending verification of both Debian assets against the publisher `hashes.sha256` manifest. [Official release](https://github.com/PowerShell/PowerShell/releases/tag/v7.6.6). |
+| tmux | `3.7c` | `3.7c` | Already current. [Official release](https://github.com/tmux/tmux/releases/tag/3.7c). The `current` terminfo fallback remains the documented exception. |
+| fzf | `v0.74.3` | `v0.74.4` | Git-source compatibility hold pending verified tag-to-commit resolution and source-build validation. [Official release](https://github.com/junegunn/fzf/releases/tag/v0.74.4). |
+| Neovim | `v0.12.5` | `v0.12.5` | Already current. The source-build tag resolves to the documented immutable commit. [Official release](https://github.com/neovim/neovim/releases/tag/v0.12.5). |
+| Ansible Galaxy | `geerlingguy.go 1.1.0`, `hurricanehrndz.rustup v1.0.0`, `ansible.posix 2.2.2`, `community.general 13.3.0` | `ansible.posix 2.2.2`, `community.general 13.4.0`; other candidates not established | `ansible.posix` is current. `community.general` is held pending archive checksum and Ansible compatibility validation; the Rustup discovery endpoint did not provide a stable candidate. [Galaxy API](https://galaxy.ansible.com/api/v3/plugin/ansible/content/published/collections/). |
+| CI Python packages | `pre-commit 4.6.2`, `ansible 14.3.1`, `ansible-lint 26.8.0` | `pre-commit 4.6.2`, `ansible 14.4.0`, `ansible-lint 26.9.0` | Pre-commit is current; Ansible and Ansible Lint are package-integrity holds pending compatible resolver output. [PyPI](https://pypi.org/). |
+| CI actions and Chezmoi | `actions/checkout v7.0.1`, `setup-python v7.0.0`, versioned Chezmoi Debian package | Chezmoi `v2.73.0` | Chezmoi integrity hold pending exact Debian asset verification against the publisher checksums. Action refs and Python remain held pending their respective upstream policy review. [Chezmoi release](https://github.com/twpayne/chezmoi/releases/tag/v2.73.0). |
+| pre-commit hooks | `pre-commit-hooks v6.0.0`, `yamllint v1.38.0` | not reselected | Compatibility hold; changes require `pre-commit autoupdate` in a clean worktree and tag/commit verification. |
+| BusyBox OCI image | pinned digest `7a3ebe…868df0` | not reselected | Immutable-digest hold; local `skopeo` is unavailable, so registry-manifest verification remains outstanding. |
+| Lazy.nvim and Neovim locks | Lazy bootstrap commit plus 40 lock commits | not reselected | All 40 lock entries are full 40-character immutable commits. Hold pending the isolated Lazy.nvim lock update workflow; do not edit the generated lockfile manually. |
+| Dive and SpecKit | Dive `v0.13.1`; floating SpecKit Git URL | Dive `v0.13.1`; no safe SpecKit candidate | Dive is already at the latest publisher release but retains its missing-checksum exception. SpecKit remains an explicit floating-source exception. |
+
 ## Ownership and bounded exceptions
 
 - Packages installed through configured APT/YUM repositories are intentionally distribution-managed. Their effective versions vary with the target OS repository; this change does not add unsupported package version pins.

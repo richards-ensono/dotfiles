@@ -31,6 +31,22 @@ class PodmanNetworkHelperProvisioningTests(unittest.TestCase):
         self.assertIn('graphroot = "{{ podman_user_home }}/.local/share/containers/storage"', TASKS)
         self.assertIn('mount_program = "/usr/bin/fuse-overlayfs"', TASKS)
 
+    def test_rootless_lifecycle_skips_root_run_containers(self) -> None:
+        lifecycle = TASKS.index("Validate rootless Podman network-helper lifecycle")
+        environment = TASKS.index('XDG_RUNTIME_DIR: "/run/user/{{ podman_user_uid }}"')
+        self.assertLess(lifecycle, environment)
+        self.assertIn("when: podman_user_uid | int != 0", TASKS)
+
+    def test_matching_components_skip_replacement_staging(self) -> None:
+        self.assertIn(
+            "Determine whether reviewed container-image configuration needs replacement", TASKS
+        )
+        self.assertIn("when: podman_container_image_configuration_needs_update", TASKS)
+        self.assertIn(
+            "Determine whether verified Podman network helpers need replacement", TASKS
+        )
+        self.assertIn("when: podman_network_helpers_need_update", TASKS)
+
     def test_existing_matching_helpers_are_preserved_until_validation(self) -> None:
         preserve = TASKS.index("Preserve existing managed Podman network helpers")
         stage = TASKS.index("Stage validated Podman network helper replacements")
