@@ -52,9 +52,10 @@ For `git` specifically, all of these are hard failures inside a namespace:
 - **GPG/YubiKey commit signing.** Signing needs `gpg-agent` and the `scdaemon`
   socket plus PC/SC access to the hardware token. A sandbox that can reach those
   is not meaningfully sandboxed.
-- **SSH authentication.** Push/fetch needs `SSH_AUTH_SOCK`, which is a YubiKey
-  agent here. Binding an agent socket into a sandbox hands the sandbox the ability
-  to authenticate as the user, defeating the sandbox.
+- **SSH authentication.** Push/fetch needs `SSH_AUTH_SOCK`, which may be a SSH Agent,
+  GPG Agent, YubiKey Agent or KeePassXC running on the host. Binding an agent
+  socket into a sandbox hands the sandbox the ability to authenticate as the user,
+  defeating the sandbox.
 - **Credential helpers** (`gh auth`, libsecret, keyring) need the session D-Bus and
   the user's secret store.
 - **Hook and config resolution.** `core.hooksPath`, `includeIf`, global and system
