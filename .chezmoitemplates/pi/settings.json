@@ -1,12 +1,13 @@
 {
   "defaultProvider": "github-copilot",
-  "defaultModel": "gpt-6-terra",
+  "defaultModel": "gpt-6.1-sol",
   "defaultThinkingLevel": "medium",
   "enabledModels": [
-    "github-copilot/gpt-6-sol",
+    "github-copilot/gpt-6.1-sol",
     "github-copilot/gpt-6-astra",
     "github-copilot/claude-opus-5.5",
-    "github-copilot/claude-sonnet-5.5"
+    "github-copilot/claude-sonnet-5.5",
+    "github-copilot/gemini-3.8-flash"
   ],
   "subagents": {
     "defaultModel": "github-copilot/gpt-6-luna"
