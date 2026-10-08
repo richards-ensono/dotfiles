@@ -147,7 +147,12 @@ require("lazy").setup({
 				})
 			end,
 		},
-		{ "nvim-treesitter/nvim-treesitter", commit = "65a266bf693d3fc856dd341c25edea1a0917a30f", lazy = false, build = ":TSUpdate" },
+		{
+			"nvim-treesitter/nvim-treesitter",
+			commit = "65a266bf693d3fc856dd341c25edea1a0917a30f",
+			lazy = false,
+			build = ":TSUpdate",
+		},
 		{
 			"nvim-lualine/lualine.nvim",
 			dependencies = { "nvim-tree/nvim-web-devicons" },
@@ -379,3 +384,13 @@ vim.keymap.set("v", "<leader>ai", ":PiAskSelection<CR>", { desc = "Ask pi (selec
 -- keybindings
 vim.keymap.set("n", "<leader>tf", "<cmd>:Format<CR>", { desc = "Format File" })
 vim.keymap.set("v", "<leader>tf", ":Format", { desc = "Format Selection" })
+
+-- eirctl LSP
+if vim.fn.executable("eirctl-lsp") == 1 then
+	vim.lsp.config["eirctl"] = {
+		cmd = { "eirctl-lsp" },
+		filetypes = { "yaml" },
+		root_markers = { "eirctl.yaml" },
+	}
+	vim.lsp.enable("eirctl")
+end
