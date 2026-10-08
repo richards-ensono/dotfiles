@@ -2,6 +2,7 @@
   "defaultProvider": "github-copilot",
   "defaultModel": "gpt-6.1-sol",
   "defaultThinkingLevel": "medium",
+  "defaultTools": ["+codemode"],
   "enabledModels": [
     "github-copilot/gpt-6.1-sol",
     "github-copilot/gpt-6-astra",
@@ -22,6 +23,7 @@
     "npm:context-mode",
     "npm:pi-simplify",
     "npm:pi-subagents",
-    "npm:pi-web-access"
+    "npm:pi-web-access",
+    "npm:graphify-pi"
   ]
 }
