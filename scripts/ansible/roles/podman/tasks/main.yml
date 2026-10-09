@@ -38,26 +38,16 @@
 - name: Create containers configuration directory
   become: true
   ansible.builtin.file:
-    path: /etc/containers
+    path: "{{ podman_config_dir }}"
     state: directory
     mode: "0755"
 
-- name: Install default policy.json
-  become: true
-  ansible.builtin.get_url:
-    url: "https://raw.githubusercontent.com/containers/image/{{ podman_containers_image_ref }}/default-policy.json"
-    dest: /etc/containers/policy.json
-    mode: "0644"
-
-- name: Install default registries.conf
-  become: true
-  ansible.builtin.get_url:
-    url: "https://raw.githubusercontent.com/containers/image/{{ podman_containers_image_ref }}/registries.conf"
-    dest: /etc/containers/registries.conf
-    mode: "0644"
+- name: Stage and validate Podman configuration with rollback
+  ansible.builtin.include_tasks: install-configuration.yml
 
 - name: Check if Podman is already installed and matches version
-  ansible.builtin.command: podman --version
+  ansible.builtin.command:
+    argv: ["{{ podman_install_dir }}/bin/podman", --version]
   register: podman_current_version
   failed_when: false
   changed_when: false
@@ -82,18 +72,23 @@
     update: true
   when: podman_current_version.rc != 0 or podman_expected_version not in podman_current_version.stdout
 
-- name: Build and Install Podman from source
-  become: true
-  ansible.builtin.shell: |
-    export PATH=$PATH:/usr/local/go/bin
-    make BUILDTAGS="{{ podman_build_tags }}" PREFIX=/usr/local
-    make install PREFIX=/usr/local
-  args:
+- name: Read checked-out Podman commit
+  ansible.builtin.command:
+    argv: [git, rev-parse, HEAD]
     chdir: "{{ podman_build_dir }}"
-    executable: /bin/bash
+  register: podman_checked_out_commit
+  changed_when: false
   when: podman_current_version.rc != 0 or podman_expected_version not in podman_current_version.stdout
-  register: podman_build_result
-  changed_when: podman_build_result.rc == 0
+
+- name: Verify checked-out Podman commit
+  ansible.builtin.assert:
+    that:
+      - (podman_checked_out_commit.stdout | trim) == podman_source_commit
+  when: podman_current_version.rc != 0 or podman_expected_version not in podman_current_version.stdout
+
+- name: Build and stage Podman with rollback
+  ansible.builtin.include_tasks: install-staged.yml
+  when: podman_current_version.rc != 0 or podman_expected_version not in podman_current_version.stdout
 
 - name: Get information for {{ podman_user }}
   ansible.builtin.getent:
@@ -168,7 +163,8 @@
   when: ansible_virtualization_type == "wsl"
 
 - name: Verify Podman installation
-  ansible.builtin.command: podman --version
+  ansible.builtin.command:
+    argv: ["{{ podman_install_dir }}/bin/podman", --version]
   register: podman_verify
   changed_when: false
 

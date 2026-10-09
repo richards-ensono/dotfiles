@@ -3,3 +3,5 @@ neovim_repo: "https://github.com/neovim/neovim.git"
 neovim_dest: "/usr/local/src/neovim"
 neovim_install_dir: "/usr/local"
 neovim_version: "v0.12.4"
+# Immutable resolution of the existing release, not a version upgrade.
+neovim_source_commit: "68ea43cd0c28af25cd47731308c94fedfcfd1b0b"

@@ -1,0 +1,88 @@
+---
+- name: Reset .NET staging state
+  ansible.builtin.set_fact:
+    dotnet_stage: {}
+
+- name: Prepare and activate verified .NET SDK
+  block:
+    - name: Create .NET staging directory on the installation filesystem
+      ansible.builtin.tempfile:
+        path: "{{ dotnet_install_dir | dirname }}"
+        state: directory
+        prefix: .dotnet-stage-
+      register: dotnet_stage
+
+    - name: Download exact .NET SDK asset
+      ansible.builtin.get_url:
+        url: "{{ dotnet_download_url }}"
+        dest: "{{ dotnet_stage.path }}/sdk.tar.gz"
+        checksum: "{{ dotnet_checksum }}"
+        mode: "0600"
+
+    - name: Create staged .NET payload directory
+      ansible.builtin.file:
+        path: "{{ dotnet_stage.path }}/payload"
+        state: directory
+        mode: "0755"
+
+    - name: Inspect existing .NET state before staging
+      ansible.builtin.stat:
+        path: "{{ dotnet_install_dir }}"
+        follow: false
+      register: dotnet_existing_state
+
+    - name: Reject non-directory or symlink .NET state
+      ansible.builtin.assert:
+        that:
+          - not dotnet_existing_state.stat.exists or (dotnet_existing_state.stat.isdir | default(false))
+          - not (dotnet_existing_state.stat.islnk | default(false))
+
+    - name: Retain existing .NET directory permissions in staging
+      ansible.builtin.file:
+        path: "{{ dotnet_stage.path }}/payload"
+        state: directory
+        mode: "{{ dotnet_existing_state.stat.mode | default('0755') }}"
+
+    # Preserve user-installed tools and side-by-side SDKs, matching the old
+    # overlay installation behavior without modifying the active directory.
+    - name: Preserve existing .NET state in the staged payload
+      ansible.builtin.copy:
+        src: "{{ dotnet_install_dir }}/"
+        dest: "{{ dotnet_stage.path }}/payload/"
+        remote_src: true
+        mode: preserve
+      when: dotnet_existing_state.stat.exists
+
+    - name: Extract verified .NET SDK asset
+      ansible.builtin.unarchive:
+        src: "{{ dotnet_stage.path }}/sdk.tar.gz"
+        dest: "{{ dotnet_stage.path }}/payload"
+        remote_src: true
+
+    - name: Verify staged .NET SDK version
+      ansible.builtin.command:
+        argv: ["{{ dotnet_stage.path }}/payload/dotnet", --version]
+        chdir: "{{ dotnet_stage.path }}/payload"
+      register: dotnet_staged_version
+      changed_when: false
+      failed_when: >-
+        dotnet_staged_version.rc != 0 or
+        (dotnet_staged_version.stdout | trim) != dotnet_sdk_version
+
+    - name: Activate .NET SDK with rollback
+      ansible.builtin.include_tasks: "{{ role_path }}/../../tasks/activate-staged.yml"
+      vars:
+        staged_installation_files:
+          - src: "{{ dotnet_stage.path }}/payload"
+            dest: "{{ dotnet_install_dir }}"
+        staged_installation_verify_dir: "{{ dotnet_install_dir }}"
+        staged_installation_checks:
+          - argv: ["{{ dotnet_install_dir }}/dotnet", --version]
+            pattern: "^{{ dotnet_sdk_version | regex_escape }}\\s*$"
+
+  always:
+    - name: Remove .NET temporary download and staging directory
+      ansible.builtin.file:
+        path: "{{ dotnet_stage.path }}"
+        state: absent
+      when: dotnet_stage.path is defined

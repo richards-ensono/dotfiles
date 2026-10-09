@@ -1,0 +1,115 @@
+---
+# Internal transaction shared by the three staged installers. Callers validate
+# downloads/build outputs first and clean staging afterwards. Never clean a
+# recovery path in 'always': it may be the only surviving installation.
+- name: Reset staged installation transaction state
+  ansible.builtin.set_fact:
+    staged_installation_preserved: {results: []}
+    staged_installation_activated: {results: []}
+
+- name: Activate and verify staged installation
+  block:
+    - name: Inspect installation destinations
+      ansible.builtin.stat:
+        path: "{{ item.dest }}"
+        follow: false
+      loop: "{{ staged_installation_files }}"
+      register: staged_installation_existing
+      loop_control:
+        label: "{{ item.dest }}"
+
+    - name: Inspect installation recovery paths
+      ansible.builtin.stat:
+        path: "{{ item.dest }}.ansible-backup"
+        follow: false
+      loop: "{{ staged_installation_files }}"
+      register: staged_installation_recovery
+      loop_control:
+        label: "{{ item.dest }}"
+
+    - name: Refuse existing recovery paths or symlink destinations
+      ansible.builtin.assert:
+        that:
+          - not item.stat.exists
+          - >-
+            item.item.allow_symlink | default(false) or
+            not (staged_installation_existing.results[index].stat.islnk | default(false))
+        fail_msg: "Refusing unsafe destination or existing recovery path {{ item.item.dest }}."
+      loop: "{{ staged_installation_recovery.results }}"
+      loop_control:
+        index_var: index
+        label: "{{ item.item.dest }}"
+
+    - name: Preserve existing installation files
+      ansible.builtin.command:
+        argv: [mv, --, "{{ item.item.dest }}", "{{ item.item.dest }}.ansible-backup"]
+      when: item.stat.exists
+      loop: "{{ staged_installation_existing.results }}"
+      loop_control:
+        label: "{{ item.item.dest }}"
+      register: staged_installation_preserved
+      changed_when: true
+
+    - name: Activate staged installation files
+      ansible.builtin.command:
+        argv: [mv, --, "{{ item.src }}", "{{ item.dest }}"]
+      loop: "{{ staged_installation_files }}"
+      loop_control:
+        label: "{{ item.dest }}"
+      register: staged_installation_activated
+      changed_when: true
+
+    - name: Verify activated installation
+      ansible.builtin.command:
+        argv: "{{ item.argv }}"
+        chdir: "{{ staged_installation_verify_dir }}"
+      loop: "{{ staged_installation_checks }}"
+      loop_control:
+        label: "{{ item.argv[0] }}"
+      register: staged_installation_verification
+      changed_when: false
+      failed_when: >-
+        staged_installation_verification.rc != 0
+        or (item.pattern is defined and
+            staged_installation_verification.stdout is not regex(item.pattern))
+        or (item.reject_stderr | default(false) and
+            staged_installation_verification.stderr | length > 0)
+
+  rescue:
+    # Every destination was preserved (or absent) before activation. Even a
+    # failing cross-filesystem mv can leave partial output, so clean attempted
+    # replacements, not just commands returning rc=0.
+    - name: Remove attempted replacements after activation failure
+      ansible.builtin.file:
+        path: "{{ item.item.dest }}"
+        state: absent
+      loop: "{{ staged_installation_activated.results | default([]) }}"
+      when: not (item.skipped | default(false))
+      loop_control:
+        label: "{{ item.item.dest }}"
+
+    - name: Restore successfully preserved installation files
+      ansible.builtin.command:
+        argv: [mv, --, "{{ item.item.item.dest }}.ansible-backup", "{{ item.item.item.dest }}"]
+      loop: "{{ staged_installation_preserved.results | default([]) }}"
+      when: item.rc | default(1) == 0
+      changed_when: true
+      loop_control:
+        label: "{{ item.item.item.dest }}"
+
+    - name: Propagate staged installation failure
+      ansible.builtin.fail:
+        msg: >-
+          Installation failed: {{ ansible_failed_result.msg | default('verification failed') }}.
+          Previous managed files were restored where present. If restoration
+          itself failed, retain .ansible-backup paths for manual recovery.
+
+# Cleanup is outside the rescue boundary. A cleanup error must not roll back an
+# already verified installation after some of its backups have been deleted.
+- name: Remove recovery paths after successful verification
+  ansible.builtin.file:
+    path: "{{ item.dest }}.ansible-backup"
+    state: absent
+  loop: "{{ staged_installation_files }}"
+  loop_control:
+    label: "{{ item.dest }}"

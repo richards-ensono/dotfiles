@@ -1,0 +1,49 @@
+---
+- name: Reset Neovim staging state
+  ansible.builtin.set_fact:
+    neovim_stage: {}
+
+- name: Stage complete Neovim installation
+  become: true
+  block:
+    - name: Create Neovim staging directory on the install filesystem
+      ansible.builtin.tempfile:
+        path: "{{ neovim_install_dir }}"
+        state: directory
+        prefix: .nvim-stage-
+      register: neovim_stage
+
+    - name: Install Neovim build into staging only
+      ansible.builtin.command:
+        argv: [make, install, "DESTDIR={{ neovim_stage.path }}"]
+        chdir: "{{ neovim_dest }}"
+      changed_when: true
+
+    - name: Verify staged Neovim version
+      ansible.builtin.command:
+        argv: ["{{ neovim_stage.path }}{{ neovim_install_dir }}/bin/nvim", --version]
+      register: neovim_staged_version
+      changed_when: false
+      failed_when: >-
+        neovim_staged_version.rc != 0 or
+        ('NVIM ' ~ neovim_version) not in neovim_staged_version.stdout
+
+    - name: Verify staged Neovim runtime without using the active runtime
+      ansible.builtin.command:
+        argv: ["{{ neovim_stage.path }}{{ neovim_install_dir }}/bin/nvim", --clean, --headless, +qa]
+      environment:
+        VIMRUNTIME: "{{ neovim_stage.path }}{{ neovim_install_dir }}/share/nvim/runtime"
+      register: neovim_staged_startup
+      changed_when: false
+      failed_when: neovim_staged_startup.rc != 0 or neovim_staged_startup.stderr | length > 0
+
+    - name: Activate staged Neovim binary and runtime together
+      ansible.builtin.include_tasks: activate-staged.yml
+
+  always:
+    - name: Remove Neovim staging directory
+      become: true
+      ansible.builtin.file:
+        path: "{{ neovim_stage.path }}"
+        state: absent
+      when: neovim_stage.path is defined

@@ -1,5 +1,7 @@
 ---
 podman_git_repo: "https://github.com/containers/podman.git"
+# Immutable resolution of the existing release, not a version upgrade.
+podman_source_commit: "cade97a52ebdf9dbf9e81de8009015776837a074"
 podman_containers_image_ref: "df7e80d2d19872b61f352a8a182ec934dc0c2346"
 
 # Package mapping for network handlers and runtimes

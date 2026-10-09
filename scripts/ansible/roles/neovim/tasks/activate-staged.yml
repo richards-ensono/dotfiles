@@ -1,0 +1,58 @@
+---
+- name: Inspect staged Neovim ancillary files
+  ansible.builtin.find:
+    paths: "{{ neovim_stage.path }}{{ neovim_install_dir }}"
+    recurse: true
+    file_type: any
+  register: neovim_staged_payload
+
+- name: Initialize Neovim activation manifest
+  ansible.builtin.set_fact:
+    neovim_activation_files:
+      - src: "{{ neovim_stage.path }}{{ neovim_install_dir }}/bin/nvim"
+        dest: "{{ neovim_install_dir }}/bin/nvim"
+      - src: "{{ neovim_stage.path }}{{ neovim_install_dir }}/share/nvim"
+        dest: "{{ neovim_install_dir }}/share/nvim"
+
+- name: Retain staged Neovim man pages and other ancillary files
+  ansible.builtin.set_fact:
+    neovim_activation_files: >-
+      {{ neovim_activation_files + [{'src': item.path,
+         'dest': item.path | regex_replace('^' ~ (neovim_stage.path | regex_escape), ''),
+         'allow_symlink': item.islnk}] }}
+  loop: "{{ neovim_staged_payload.files | sort(attribute='path') }}"
+  when:
+    - item.isreg or item.islnk
+    - item.path != neovim_stage.path ~ neovim_install_dir ~ '/bin/nvim'
+    - not item.path.startswith(neovim_stage.path ~ neovim_install_dir ~ '/share/nvim/')
+  loop_control:
+    label: "{{ item.path }}"
+
+- name: Ensure Neovim ancillary destination directories exist
+  ansible.builtin.file:
+    path: "{{ item.dest | dirname }}"
+    state: directory
+    mode: "0755"
+  loop: "{{ neovim_activation_files }}"
+  loop_control:
+    label: "{{ item.dest }}"
+
+- name: Ensure Neovim activation directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ neovim_install_dir }}/bin"
+    - "{{ neovim_install_dir }}/share"
+
+- name: Activate Neovim with binary and runtime rollback
+  ansible.builtin.include_tasks: "{{ role_path }}/../../tasks/activate-staged.yml"
+  vars:
+    staged_installation_files: "{{ neovim_activation_files }}"
+    staged_installation_verify_dir: "{{ neovim_install_dir }}"
+    staged_installation_checks:
+      - argv: ["{{ neovim_install_dir }}/bin/nvim", --version]
+        pattern: "^NVIM {{ neovim_version | regex_escape }}(?:\\s|$)"
+      - argv: ["{{ neovim_install_dir }}/bin/nvim", --clean, --headless, +qa]
+        reject_stderr: true
