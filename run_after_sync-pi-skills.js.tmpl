@@ -1,0 +1,68 @@
+#!/usr/bin/env node
+
+// Install only author-owned skills; Pi owns the agent directory and its mode.
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+
+if (process.platform === "linux") {
+	const agentDir = path.join(process.env.HOME || os.homedir(), ".pi", "agent");
+	const skills = {
+		"bubblewrap-sandbox": {
+			"SKILL.md": {{ include ".chezmoitemplates/pi/skills/bubblewrap-sandbox/SKILL.md" | quote }},
+			"bwrap-run.sh": {{ include ".chezmoitemplates/pi/skills/bubblewrap-sandbox/executable_bwrap-run.sh" | quote }},
+		},
+		"podman-containers": {
+			"SKILL.md": {{ include ".chezmoitemplates/pi/skills/podman-containers/SKILL.md" | quote }},
+			"podman-run.sh": {{ include ".chezmoitemplates/pi/skills/podman-containers/executable_podman-run.sh" | quote }},
+		},
+		"github": {
+			"SKILL.md": {{ include ".chezmoitemplates/pi/skills/github/SKILL.md" | quote }},
+		},
+	};
+
+	function ensureDirectory(dir) {
+		try {
+			const stat = fs.lstatSync(dir);
+			if (!stat.isDirectory()) throw new Error(`Not a directory: ${dir}`);
+		} catch (error) {
+			if (error.code !== "ENOENT") throw error;
+			fs.mkdirSync(dir, { mode: 0o700 });
+		}
+	}
+
+	function syncFile(file, contents, mode) {
+		try {
+			const stat = fs.lstatSync(file);
+			if (!stat.isFile()) throw new Error(`Not a regular file: ${file}`);
+			if ((stat.mode & 0o777) === mode && fs.readFileSync(file, "utf8") === contents) return;
+		} catch (error) {
+			if (error.code !== "ENOENT") throw error;
+		}
+		const temp = path.join(path.dirname(file), `.chezmoi-skill-${process.pid}-${path.basename(file)}`);
+		try {
+			fs.writeFileSync(temp, contents, { mode, flag: "wx" });
+			fs.renameSync(temp, file);
+		} catch (error) {
+			fs.rmSync(temp, { force: true });
+			throw error;
+		}
+	}
+
+	try {
+		ensureDirectory(path.dirname(agentDir));
+		ensureDirectory(agentDir);
+		const skillDir = path.join(agentDir, "skills");
+		ensureDirectory(skillDir);
+		for (const [name, files] of Object.entries(skills)) {
+			const dir = path.join(skillDir, name);
+			ensureDirectory(dir);
+			for (const [filename, contents] of Object.entries(files)) {
+				syncFile(path.join(dir, filename), contents, filename.endsWith(".sh") ? 0o755 : 0o644);
+			}
+		}
+	} catch (error) {
+		console.error(`Pi skill synchronization failed: ${error.message}`);
+		process.exitCode = 1;
+	}
+}

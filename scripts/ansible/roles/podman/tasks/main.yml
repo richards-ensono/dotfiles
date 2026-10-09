@@ -1,4 +1,13 @@
 ---
+- name: Remove distribution Podman packages
+  become: true
+  ansible.builtin.apt:
+    name:
+      - podman
+      - podman-docker
+    state: absent
+    purge: true
+
 - name: Install system and build dependencies for Podman
   ansible.builtin.apt:
     name:
@@ -10,8 +19,6 @@
       - libseccomp2
       - conmon
       - catatonit
-      - netavark
-      - aardvark-dns
       - btrfs-progs
       - gcc
       - git
@@ -30,6 +37,7 @@
       - libsystemd-dev
       - make
       - pkg-config
+      - "{{ podman_compose_package }}"
       - "{{ podman_package_map[podman_network_handler] }}"
       - "{{ podman_package_map[podman_runtime] }}"
     state: present
@@ -40,10 +48,51 @@
   ansible.builtin.file:
     path: "{{ podman_config_dir }}"
     state: directory
-    mode: "0755"
+    mode: '0755'
+
+# containers/image does not publish individual file checksums. The reviewed
+# full commit in these TLS URLs is the documented integrity boundary.
+- name: Determine whether reviewed container-image configuration needs replacement
+  become: true
+  block:
+    - name: Retrieve reviewed default policy configuration
+      ansible.builtin.uri:
+        url: "{{ podman_policy_source_url }}"
+        return_content: true
+      register: podman_reviewed_policy
+      changed_when: false
+
+    - name: Retrieve reviewed registries configuration
+      ansible.builtin.uri:
+        url: "{{ podman_registries_source_url }}"
+        return_content: true
+      register: podman_reviewed_registries
+      changed_when: false
+
+    - name: Inspect installed container-image configurations
+      ansible.builtin.stat:
+        path: "{{ item }}"
+        checksum_algorithm: sha256
+      loop:
+        - "{{ podman_config_dir }}/policy.json"
+        - "{{ podman_config_dir }}/registries.conf"
+      register: podman_installed_container_image_configurations
+
+    - name: Decide whether container-image configuration needs replacement
+      ansible.builtin.set_fact:
+        podman_container_image_configuration_needs_update: >-
+          {{
+            not podman_installed_container_image_configurations.results[0].stat.exists
+            or not podman_installed_container_image_configurations.results[1].stat.exists
+            or podman_installed_container_image_configurations.results[0].stat.checksum
+              != (podman_reviewed_policy.content | hash('sha256'))
+            or podman_installed_container_image_configurations.results[1].stat.checksum
+              != (podman_reviewed_registries.content | hash('sha256'))
+          }}
 
 - name: Stage and validate Podman configuration with rollback
   ansible.builtin.include_tasks: install-configuration.yml
+  when: podman_container_image_configuration_needs_update
 
 - name: Check if Podman is already installed and matches version
   ansible.builtin.command:
@@ -60,7 +109,7 @@
   ansible.builtin.file:
     path: "{{ podman_build_dir }}"
     state: directory
-    mode: "0755"
+    mode: '0755'
   when: podman_current_version.rc != 0 or podman_expected_version not in podman_current_version.stdout
 
 - name: Clone Podman repository
@@ -90,14 +139,256 @@
   ansible.builtin.include_tasks: install-staged.yml
   when: podman_current_version.rc != 0 or podman_expected_version not in podman_current_version.stdout
 
-- name: Get information for {{ podman_user }}
+- name: Determine whether verified Podman network helpers need replacement
+  become: true
+  block:
+    - name: Reject unsupported Podman helper architecture
+      ansible.builtin.assert:
+        that:
+          - ansible_architecture in podman_network_helper_architectures
+        fail_msg: >-
+          Podman network helpers are only reviewed for
+          {{ podman_network_helper_architectures.keys() | join(', ') }};
+          refusing {{ ansible_architecture }} before download or replacement.
+
+    - name: Select reviewed Podman network helper artifacts
+      ansible.builtin.set_fact:
+        podman_network_helpers: "{{ podman_network_helper_architectures[ansible_architecture] }}"
+
+    - name: Inspect existing managed Podman network helpers
+      ansible.builtin.stat:
+        path: "{{ podman_network_helper_directory }}/{{ item.key }}"
+        follow: false
+      register: podman_network_helper_paths
+      loop: "{{ podman_network_helpers | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+
+    - name: Inspect existing managed Podman helper versions
+      ansible.builtin.command:
+        argv:
+          - "{{ podman_network_helper_directory }}/{{ item.item.key }}"
+          - --version
+      changed_when: false
+      failed_when: false
+      register: podman_existing_helper_versions
+      when: item.stat.exists
+      loop: "{{ podman_network_helper_paths.results }}"
+      loop_control:
+        label: "{{ item.item.key }}"
+
+    - name: Initialize Podman helper replacement decision
+      ansible.builtin.set_fact:
+        podman_network_helpers_need_update: false
+
+    - name: Mark mismatched Podman helpers for replacement
+      ansible.builtin.set_fact:
+        podman_network_helpers_need_update: true
+      when:
+        - not item.item.stat.exists
+          or item.rc != 0
+          or item.stdout is not search(item.item.item.value.version)
+      loop: "{{ podman_existing_helper_versions.results }}"
+      loop_control:
+        label: "{{ item.item.item.key }}"
+
+- name: Provision verified Podman network helpers
+  become: true
+  when: podman_network_helpers_need_update
+  block:
+    - name: Create Podman network-helper staging directory
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: podman_network_helpers
+      register: podman_network_helper_stage
+
+    - name: Download verified Podman network helper artifacts
+      ansible.builtin.get_url:
+        url: "{{ item.value.url }}"
+        dest: "{{ podman_network_helper_stage.path }}/{{ item.key }}.gz"
+        checksum: "{{ item.value.checksum }}"
+        mode: '0600'
+      loop: "{{ podman_network_helpers | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+
+    - name: Decompress verified Podman network helper artifacts
+      ansible.builtin.command:
+        argv:
+          - gzip
+          - --decompress
+          - --keep
+          - "{{ podman_network_helper_stage.path }}/{{ item.key }}.gz"
+      args:
+        creates: "{{ podman_network_helper_stage.path }}/{{ item.key }}"
+      loop: "{{ podman_network_helpers | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+
+    - name: Set Podman network helper executable permissions
+      ansible.builtin.file:
+        path: "{{ podman_network_helper_stage.path }}/{{ item.key }}"
+        mode: '0755'
+      loop: "{{ podman_network_helpers | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+
+    - name: Verify staged Podman network helper versions
+      ansible.builtin.command:
+        argv:
+          - "{{ podman_network_helper_stage.path }}/{{ item.key }}"
+          - --version
+      changed_when: false
+      register: podman_staged_helper_versions
+      loop: "{{ podman_network_helpers | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+
+    - name: Reject staged Podman network helper version mismatches
+      ansible.builtin.assert:
+        that:
+          - item.stdout is search(item.item.value.version)
+        fail_msg: >-
+          Staged {{ item.item.key }} did not report the reviewed version
+          {{ item.item.value.version }}: {{ item.stdout | default(item.stderr) }}
+      loop: "{{ podman_staged_helper_versions.results }}"
+      loop_control:
+        label: "{{ item.item.key }}"
+
+    - name: Create the managed Podman network-helper directory
+      ansible.builtin.file:
+        path: "{{ podman_network_helper_directory }}"
+        state: directory
+        mode: '0755'
+
+    - name: Inspect existing managed Podman network helpers
+      ansible.builtin.stat:
+        path: "{{ podman_network_helper_directory }}/{{ item.key }}"
+        follow: false
+      register: podman_network_helper_paths
+      loop: "{{ podman_network_helpers | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+
+    - name: Preserve existing managed Podman network helpers
+      ansible.builtin.copy:
+        src: "{{ podman_network_helper_directory }}/{{ item.item.key }}"
+        dest: "{{ podman_network_helper_stage.path }}/{{ item.item.key }}.previous"
+        remote_src: true
+        mode: '0755'
+      when: item.stat.exists
+      loop: "{{ podman_network_helper_paths.results }}"
+      loop_control:
+        label: "{{ item.item.key }}"
+
+    - name: Stage validated Podman network helper replacements
+      ansible.builtin.copy:
+        src: "{{ podman_network_helper_stage.path }}/{{ item.key }}"
+        dest: "{{ podman_network_helper_directory }}/{{ item.key }}.new"
+        remote_src: true
+        mode: '0755'
+      loop: "{{ podman_network_helpers | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+
+    - name: Atomically install validated Podman network helper replacements
+      ansible.builtin.command:
+        argv:
+          - mv
+          - "{{ podman_network_helper_directory }}/{{ item.key }}.new"
+          - "{{ podman_network_helper_directory }}/{{ item.key }}"
+      changed_when: true
+      loop: "{{ podman_network_helpers | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+
+    - name: Verify installed Podman network helper versions
+      ansible.builtin.command:
+        argv:
+          - "{{ podman_network_helper_directory }}/{{ item.key }}"
+          - --version
+      changed_when: false
+      register: podman_installed_helper_versions
+      loop: "{{ podman_network_helpers | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+
+    - name: Reject installed Podman network helper version mismatches
+      ansible.builtin.assert:
+        that:
+          - item.stdout is search(item.item.value.version)
+        fail_msg: >-
+          Installed {{ item.item.key }} did not report the reviewed version
+          {{ item.item.value.version }}: {{ item.stdout | default(item.stderr) }}
+      loop: "{{ podman_installed_helper_versions.results }}"
+      loop_control:
+        label: "{{ item.item.key }}"
+
+  rescue:
+    - name: Restore previously managed Podman network helpers
+      ansible.builtin.copy:
+        src: "{{ podman_network_helper_stage.path }}/{{ item.item.key }}.previous"
+        dest: "{{ podman_network_helper_directory }}/{{ item.item.key }}"
+        remote_src: true
+        mode: '0755'
+      when:
+        - podman_network_helper_paths is defined
+        - item.stat.exists
+      loop: "{{ podman_network_helper_paths.results | default([]) }}"
+      loop_control:
+        label: "{{ item.item.key }}"
+
+    - name: Remove new Podman network helpers without prior managed versions
+      ansible.builtin.file:
+        path: "{{ podman_network_helper_directory }}/{{ item.item.key }}"
+        state: absent
+      when:
+        - podman_network_helper_paths is defined
+        - not item.stat.exists
+      loop: "{{ podman_network_helper_paths.results | default([]) }}"
+      loop_control:
+        label: "{{ item.item.key }}"
+
+    - name: Report Podman network-helper provisioning failure
+      ansible.builtin.fail:
+        msg: >-
+          Podman network-helper provisioning failed. Existing managed helpers
+          were preserved or restored; Debian helper packages were not removed.
+
+  always:
+    - name: Remove Podman network-helper staging directory
+      ansible.builtin.file:
+        path: "{{ podman_network_helper_stage.path }}"
+        state: absent
+      when: podman_network_helper_stage is defined
+
+- name: Remove distribution Podman network-helper packages after replacement
+  become: true
+  ansible.builtin.apt:
+    name:
+      - netavark
+      - aardvark-dns
+    state: absent
+    purge: true
+
+- name: Install Docker-compatible Podman wrapper
+  become: true
+  ansible.builtin.copy:
+    dest: /usr/local/bin/docker
+    mode: '0755'
+    content: |
+      #!/bin/sh
+      exec /usr/local/bin/podman "$@"
+
+- name: Get Podman user information
   ansible.builtin.getent:
     key: "{{ podman_user }}"
     database: passwd
 
-- name: Set home directory for {{ podman_user }}
+- name: Set Podman user identity facts
   ansible.builtin.set_fact:
     podman_user_home: "{{ getent_passwd[podman_user][4] }}"
+    podman_user_uid: "{{ getent_passwd[podman_user][1] }}"
 
 - name: Ensure /etc/subuid and /etc/subgid are configured for {{ podman_user }}
   become: true
@@ -105,18 +396,18 @@
     - name: Add user to /etc/subuid
       ansible.builtin.lineinfile:
         path: /etc/subuid
-        regexp: "^{{ podman_user }}:"
+        regexp: '^{{ podman_user }}:'
         line: "{{ podman_user }}:100000:65536"
         create: true
-        mode: "0644"
+        mode: '0644'
 
     - name: Add user to /etc/subgid
       ansible.builtin.lineinfile:
         path: /etc/subgid
-        regexp: "^{{ podman_user }}:"
+        regexp: '^{{ podman_user }}:'
         line: "{{ podman_user }}:100000:65536"
         create: true
-        mode: "0644"
+        mode: '0644'
 
 - name: Check if unprivileged user namespaces sysctl exists
   ansible.builtin.stat:
@@ -127,7 +418,7 @@
   become: true
   ansible.posix.sysctl:
     name: kernel.unprivileged_userns_clone
-    value: "1"
+    value: '1'
     state: present
     sysctl_file: /etc/sysctl.d/userns.conf
   when: podman_userns_sysctl_stat.stat.exists
@@ -138,18 +429,38 @@
     state: directory
     owner: "{{ podman_user }}"
     group: "{{ podman_user }}"
-    mode: "0755"
+    mode: '0755'
+
+# A user-level storage.conf overrides every system storage.conf. Set both paths
+# explicitly so rootless Podman never falls back to root-owned /var/lib storage.
+- name: Configure rootless Podman storage
+  ansible.builtin.copy:
+    dest: "{{ podman_user_home }}/.config/containers/storage.conf"
+    content: |
+      [storage]
+      driver = "overlay"
+      runroot = "/run/user/{{ podman_user_uid }}/containers"
+      graphroot = "{{ podman_user_home }}/.local/share/containers/storage"
+
+      [storage.options.overlay]
+      mount_program = "/usr/bin/fuse-overlayfs"
+    owner: "{{ podman_user }}"
+    group: "{{ podman_user }}"
+    mode: "0644"
 
 - name: Configure Podman runtime and network handler
   ansible.builtin.copy:
     dest: "{{ podman_user_home }}/.config/containers/containers.conf"
     content: |
+      [engine]
+      helper_binaries_dir = {{ podman_helper_binaries_dirs | to_json }}
+
       [containers]
       netns = "{{ podman_network_handler }}"
       runtime = "{{ podman_runtime }}"
     owner: "{{ podman_user }}"
     group: "{{ podman_user }}"
-    mode: "0644"
+    mode: '0644'
 
 - name: Ensure Podman uses iptables firewall on WSL
   become: true
@@ -159,8 +470,60 @@
     section: network
     option: firewall_driver
     value: '"iptables"'
-    mode: "0644"
+    mode: '0644'
   when: ansible_virtualization_type == "wsl"
+
+# Containers that run the playbook as root lack a rootless runtime directory.
+# Keep this lifecycle check for real non-root users; helper artifact validation above
+# still runs in every environment.
+- name: Validate rootless Podman network-helper lifecycle
+  become: true
+  become_user: "{{ podman_user }}"
+  when: podman_user_uid | int != 0
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ podman_user_uid }}"
+  block:
+    - name: Inspect active rootless Netavark helper
+      ansible.builtin.command:
+        argv:
+          - /usr/local/bin/podman
+          - info
+          - --format
+          - '{{ "{{" }} .Host.NetworkBackendInfo.Path {{ "}}" }} {{ "{{" }} .Host.NetworkBackendInfo.Version {{ "}}" }}'
+      changed_when: false
+      register: podman_active_netavark
+
+    - name: Verify active rootless Netavark helper is managed and compatible
+      ansible.builtin.assert:
+        that:
+          - podman_active_netavark.stdout is search(podman_network_helper_directory)
+          - podman_active_netavark.stdout is search(podman_network_helpers.netavark.version)
+        fail_msg: >-
+          Rootless Podman did not select the managed compatible Netavark helper:
+          {{ podman_active_netavark.stdout }}
+
+    - name: Create isolated rootless Podman diagnostic network
+      ansible.builtin.command:
+        argv:
+          - /usr/local/bin/podman
+          - network
+          - create
+          - "podman-network-diagnostic-{{ ansible_date_time.epoch }}"
+      register: podman_diagnostic_network
+      changed_when: true
+
+  always:
+    - name: Remove isolated rootless Podman diagnostic network
+      ansible.builtin.command:
+        argv:
+          - /usr/local/bin/podman
+          - network
+          - rm
+          - "podman-network-diagnostic-{{ ansible_date_time.epoch }}"
+      when:
+        - podman_diagnostic_network is defined
+        - podman_diagnostic_network.rc == 0
+      changed_when: true
 
 - name: Verify Podman installation
   ansible.builtin.command:

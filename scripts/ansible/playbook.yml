@@ -105,6 +105,22 @@
     - dotnet
     - copilot_cli
 
+- name: Update pi
+  hosts: localhost
+  tasks:
+    - name: Check whether pi is installed
+      ansible.builtin.command: pi --version
+      register: pi_check
+      changed_when: false
+      failed_when: false
+
+    - name: Update all pi components
+      ansible.builtin.command: pi update --all
+      # The updater has no stable machine-readable no-change result; report
+      # this mutating operation conservatively rather than hide possible updates.
+      changed_when: true
+      when: pi_check.rc == 0
+
 - name: Update Neovim Plugins (LazyVim)
   hosts: localhost
   tasks:
@@ -131,4 +147,6 @@
 - name: Run roles for user
   hosts: localhost
   roles:
-    - container_cleanup
+    # Rootless Podman cannot create nested user namespaces in container test runtimes.
+    - role: container_cleanup
+      when: ansible_virtualization_type not in ['docker', 'container', 'containerd', 'podman']

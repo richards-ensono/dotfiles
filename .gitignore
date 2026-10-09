@@ -1,5 +1,9 @@
-.github/prompts/opsx-*
-.github/skills/openspec-*
-.pi/
 __pycache__/
 scripts/ansible/.ansible/
+.github/prompts/opsx-*
+.github/skills/openspec-*
+.pi/*
+!.pi/skills/
+.pi/skills/*
+!.pi/skills/update-pinned-component-versions/
+!.pi/skills/update-pinned-component-versions/**

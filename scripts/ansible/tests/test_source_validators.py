@@ -45,17 +45,19 @@ class SourceValidators(unittest.TestCase):
 
     def test_mutable_configuration_url(self):
         file = self.root / "scripts/ansible/roles/podman/defaults/main.yml"
-        file.write_text(file.read_text().replace("{{ podman_containers_image_ref }}", "main"))
+        file.write_text(file.read_text().replace("{{ podman_container_image_commit }}", "main"))
         self.assertTrue(validate_podman_sources.validate(self.root))
 
     def test_mutable_source_commit(self):
         file = self.root / "scripts/ansible/roles/podman/vars/main.yml"
-        file.write_text(file.read_text().replace('podman_source_commit: "cade97a52ebdf9dbf9e81de8009015776837a074"', 'podman_source_commit: "main"'))
+        text = file.read_text()
+        source_line = next(line for line in text.splitlines() if line.startswith("podman_source_commit:"))
+        file.write_text(text.replace(source_line, 'podman_source_commit: "main"'))
         self.assertTrue(validate_podman_sources.validate(self.root))
 
     def test_network_helper_removed(self):
         file = self.root / "scripts/ansible/roles/podman/tasks/main.yml"
-        file.write_text(file.read_text().replace("      - netavark\n", ""))
+        file.write_text(file.read_text().replace("Download verified Podman network helper artifacts", "Removed helper provisioning"))
         self.assertTrue(validate_podman_network_helpers.validate(self.root))
 
 

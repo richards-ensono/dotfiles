@@ -54,6 +54,18 @@ Local validation of this port:
 - Native live Podman network integration was not run on a separate disposable provisioned host. Its opt-in script and static helper/source checks are provided; restricted nested environments are not treated as proof of rootless network compatibility.
 - Hosted GitHub Actions have not run locally; the workflow is statically validated and will execute once pushed to an eligible branch/PR.
 
+## PR merge validation
+
+After merging `origin/main` at `99d4c7d`, the newer production pins, verified Podman network helpers/Compose provider, and Pi skills/model declarations were retained alongside the staged-install safeguards. Neovim fixtures explicitly use their synthetic version rather than depend on the production pin.
+
+- 7 source-validator tests, 24 offline installer tests, and 10 Podman networking safeguard tests passed on Debian WSL.
+- All 13 Pi settings/sandbox tests imported from main passed on Debian WSL.
+- Pi unit tests passed: 14 on Linux; 13 on Windows with one symlink test skipped.
+- Isolated Chezmoi rendering and hook execution passed on Linux and Windows.
+- Full pre-commit, actionlint, production Ansible lint, and playbook syntax checks passed. The local linted sources were normalized to checkout-equivalent LF before running Linux checks.
+- Full-system two-pass provisioning and live rootless network integration were not rerun for this merge.
+- The existing `pi update --all` operation reports changes conservatively because its output is not a stable no-change API; full-playbook no-change claims do not apply to hosts with Pi installed.
+
 ## Recovery
 
 Do not overwrite or automatically delete pre-existing `.ansible-backup` paths. If an installation fails during restoration, preserve the backup and inspect the failed task before manually recovering. Binary/runtime activation is recoverable but not a multi-file atomic swap; avoid concurrent provisioning.

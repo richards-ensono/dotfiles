@@ -24,7 +24,7 @@
     path: "{{ gh_build_dir }}"
     state: directory
     mode: "0755"
-  when: gh_current_version.rc != 0 or gh_version not in gh_current_version.stdout
+  when: gh_current_version.rc != 0 or gh_release_version not in gh_current_version.stdout
 
 - name: Clone GitHub CLI repository
   ansible.builtin.git:
@@ -33,7 +33,7 @@
     version: "{{ gh_version }}"
     depth: 1
     update: true
-  when: gh_current_version.rc != 0 or gh_version not in gh_current_version.stdout
+  when: gh_current_version.rc != 0 or gh_release_version not in gh_current_version.stdout
 
 - name: Build and Install GitHub CLI from source
   become: true
@@ -56,7 +56,7 @@
     GOCACHE: "{{ gh_build_dir }}/.gocache"
   register: gh_build_result
   changed_when: gh_build_result.rc == 0
-  when: gh_current_version.rc != 0 or gh_version not in gh_current_version.stdout
+  when: gh_current_version.rc != 0 or gh_release_version not in gh_current_version.stdout
 
 - name: Verify gh installation
   ansible.builtin.command: gh --version

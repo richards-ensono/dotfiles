@@ -1,28 +1,29 @@
 {
   "defaultProvider": "github-copilot",
-  "defaultModel": "gpt-5.6-terra",
+  "defaultModel": "gpt-6.1-sol",
   "defaultThinkingLevel": "medium",
+  "defaultTools": ["+codemode"],
   "enabledModels": [
-    "github-copilot/gpt-5.6-sol",
-    "github-copilot/gpt-5.6-terra",
-    "github-copilot/gpt-5.6-luna",
-    "github-copilot/mai-code-1-flash-picker",
-    "github-copilot/claude-opus-4.8",
-    "github-copilot/claude-sonnet-4.6"
+    "github-copilot/gpt-6.1-sol",
+    "github-copilot/gpt-6-astra",
+    "github-copilot/claude-opus-5.5",
+    "github-copilot/claude-sonnet-5.5",
+    "github-copilot/gemini-3.8-flash"
   ],
   "subagents": {
-    "defaultModel": "github-copilot/gpt-5.6-luna"
+    "defaultModel": "github-copilot/gpt-6-luna"
   },
   "packages": [
     "git:github.com/richards-ensono/pi-openspec-status",
     "npm:@juicesharp/rpiv-ask-user-question",
     "npm:@juicesharp/rpiv-todo",
     "npm:@narumitw/pi-usage",
+    "npm:@narumitw/pi-chrome-devtools",
     "npm:@tmustier/pi-usage-extension",
     "npm:context-mode",
     "npm:pi-simplify",
     "npm:pi-subagents",
     "npm:pi-web-access",
-    "pi install npm:@vigolium/piolium"
+    "npm:graphify-pi"
   ]
 }

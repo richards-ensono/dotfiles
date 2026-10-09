@@ -21,3 +21,7 @@ developer_analysis_tools: # noqa: var-naming[no-role-prefix]
     module: github.com/rhysd/actionlint/cmd/actionlint
     version: v1.7.12
     version_argument: -version
+  - command: osv-scanner
+    module: github.com/google/osv-scanner/v2/cmd/osv-scanner
+    version: v2.5.1
+    version_argument: --version

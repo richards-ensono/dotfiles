@@ -1,9 +1,30 @@
 ---
-podman_version: "v6.1.0"
+podman_version: "v6.1.1"
 podman_build_dir: "/tmp/podman_build"
 podman_network_handler: "pasta"
 podman_runtime: "crun"
 podman_install_dir: "/usr/local"
 podman_config_dir: "/etc/containers"
-podman_policy_source_url: "https://raw.githubusercontent.com/containers/image/{{ podman_containers_image_ref }}/default-policy.json"
-podman_registries_source_url: "https://raw.githubusercontent.com/containers/image/{{ podman_containers_image_ref }}/registries.conf"
+podman_compose_package: "podman-compose"
+# containers/image v5.36.0 resolves to this reviewed immutable commit.
+podman_container_image_commit: "08ce6b4207e7b151ea1c2830cdb1d4473cfd12aa"
+podman_policy_source_url: "https://raw.githubusercontent.com/containers/image/{{ podman_container_image_commit }}/default-policy.json"
+podman_registries_source_url: "https://raw.githubusercontent.com/containers/image/{{ podman_container_image_commit }}/registries.conf"
+
+# Podman 6 requires Netavark and Aardvark-DNS 2.x; keep helper minor versions in sync.
+podman_network_helper_directory: "/usr/local/libexec/podman"
+podman_helper_binaries_dirs:
+  - "{{ podman_network_helper_directory }}"
+  - "/usr/local/lib/podman"
+  - "/usr/libexec/podman"
+  - "/usr/lib/podman"
+podman_network_helper_architectures:
+  x86_64:
+    netavark:
+      version: "2.1.0"
+      url: "https://github.com/containers/netavark/releases/download/v2.1.0/netavark.gz"
+      checksum: "sha256:39fb540daf7578a793510b27b592b10f17b5d9aa3b07bc5c3f40881f12d590bd"
+    aardvark-dns:
+      version: "2.1.0"
+      url: "https://github.com/containers/aardvark-dns/releases/download/v2.1.0/aardvark-dns.gz"
+      checksum: "sha256:a7bc5252ee0e083f3f46d5bb9dc5f0abdbaa31a70a5a19012412dc8055ac2976"

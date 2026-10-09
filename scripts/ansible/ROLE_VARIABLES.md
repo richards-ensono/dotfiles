@@ -19,7 +19,7 @@
 | `fzf` | `v0.74.2` | Official Git tag source build |
 | `neovim` | `v0.12.4` | Official Git tag source build; plugin refs use immutable commits/lock |
 
-The four developer analysis tools are pinned in `roles/developer_analysis_tools/defaults/main.yml`: govulncheck `v1.7.0`, staticcheck `v0.7.0`, gosec `v2.28.0`, and actionlint `v1.7.12`. Ownership markers preserve idempotence.
+The five developer analysis tools are pinned in `roles/developer_analysis_tools/defaults/main.yml`: govulncheck `v1.7.0`, staticcheck `v0.7.0`, gosec `v2.28.0`, actionlint `v1.7.12`, and OSV-Scanner `v2.5.1`. Ownership markers preserve idempotence.
 
 Ansible Galaxy inputs are pinned in `requirements.yml`: `geerlingguy.go` `1.1.0`, `hurricanehrndz.rustup` `v1.0.0`, `ansible.posix` `2.2.2`, and `community.general` `13.3.0`.
 

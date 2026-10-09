@@ -14,18 +14,8 @@ install_ansible() {
     . /etc/os-release
     case "$ID" in
     ubuntu | debian)
-      if [[ ("$ID" == "ubuntu" && "$VERSION_ID" == "22.04") || ("$ID" == "debian" && "$VERSION" == *"bookworm"*) ]]; then
-        # ensure we have recent versions of python and ansible on previous versions of Debian/Ubuntu.
-        sudo apt install -y software-properties-common
-        UBUNTU_CODENAME=jammy
-        wget -O- "https://keyserver.ubuntu.com/pks/lookup?fingerprint=on&op=get&search=0x6A755776" | sudo gpg --dearmour --yes -o /usr/share/keyrings/deadsnakes-archive-keyring.gpg
-        echo "deb [signed-by=/usr/share/keyrings/deadsnakes-archive-keyring.gpg] http://ppa.launchpad.net/deadsnakes/ppa/ubuntu $UBUNTU_CODENAME main" | sudo tee /etc/apt/sources.list.d/deadsnakes-ppa.list
-        wget -O- "https://keyserver.ubuntu.com/pks/lookup?fingerprint=on&op=get&search=0x6125E2A8C77F2818FB7BD15B93C4A3FD7BB9C367" | sudo gpg --dearmour --yes -o /usr/share/keyrings/ansible-archive-keyring.gpg
-        echo "deb [signed-by=/usr/share/keyrings/ansible-archive-keyring.gpg] http://ppa.launchpad.net/ansible/ansible/ubuntu $UBUNTU_CODENAME main" | sudo tee /etc/apt/sources.list.d/ansible.list
-      fi
-
       if [[ ("$ID" == "ubuntu" && "$VERSION_ID" == "24.04") || ("$ID" == "debian" && "$VERSION" == *"trixie"*) ]]; then
-        echo "running on $ID $VERSION_ID, using not using deadsnakes or PPA as recent versions of python and ansible available in the os repository."
+        echo "Running on $ID $VERSION_ID; using distribution-provided Python and Ansible packages."
       fi
 
       sudo apt update

@@ -42,8 +42,12 @@
     repo: "{{ neovim_repo }}"
     dest: "{{ neovim_dest }}"
     depth: 1
-    version: "{{ neovim_version }}"
+    version: "{{ neovim_source_commit }}"
     update: true
+    # Release tags such as `stable` are intentionally mutable upstream; force
+    # their local refs to update so an unrelated stale tag cannot block the
+    # immutable commit checkout above.
+    force: true
   register: neovim_git
 
 - name: Read checked-out Neovim commit

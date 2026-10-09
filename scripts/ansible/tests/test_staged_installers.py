@@ -39,7 +39,9 @@ class StagedInstallers(unittest.TestCase):
         play_file = self.root / "fixture.json"
         play_file.write_text(json.dumps(play))
         vars_file = self.root / "variables.json"
-        vars_file.write_text(json.dumps({"ansible_become": False, **variables}))
+        # Fixture binaries report a synthetic version independent of production pins.
+        fixture_versions = {"neovim_version": "v0.12.4"} if name == "neovim" else {}
+        vars_file.write_text(json.dumps({"ansible_become": False, **fixture_versions, **variables}))
         env = {**os.environ, "ANSIBLE_ROLES_PATH": str(ROOT / "scripts/ansible/roles"),
                "ANSIBLE_LOCAL_TEMP": str(self.root / "ansible-local"),
                "ANSIBLE_REMOTE_TEMP": str(self.root / "ansible-remote"),

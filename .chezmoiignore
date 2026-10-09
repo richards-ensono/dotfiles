@@ -6,6 +6,8 @@ openspec/**
 .github/**
 scripts/ansible/tests
 scripts/ansible/tests/**
+scripts/tests
+scripts/tests/**
 # Pi settings are merged by the run-after hook, not owned as a whole file.
 .pi/agent/settings.json
 
