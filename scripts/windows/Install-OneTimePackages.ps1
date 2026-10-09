@@ -10,4 +10,3 @@ winget install --source winget --id MiKTeX.MiKTeX --exact
 
 npm install -g neovim
 npm install -g @mermaid-js/mermaid-cli
-

@@ -2,7 +2,7 @@
 - name: Read ownership marker for {{ developer_analysis_tool.command }}
   ansible.builtin.slurp:
     src: "{{ developer_analysis_tools_state_dir }}/{{ developer_analysis_tool.command }}.source"
-  register: developer_analysis_tool_marker
+  register: developer_analysis_tools_marker
   failed_when: false
   changed_when: false
 
@@ -12,13 +12,13 @@
       - "{{ developer_analysis_tools_go_binary }}"
       - install
       - "{{ developer_analysis_tool.module }}@{{ developer_analysis_tool.version }}"
-  register: developer_analysis_tool_install
-  changed_when: developer_analysis_tool_install.rc == 0
+  register: developer_analysis_tools_install
+  changed_when: developer_analysis_tools_install.rc == 0
   environment:
     GOBIN: "{{ developer_analysis_tools_install_dir }}"
   when: >-
-    developer_analysis_tool_marker.failed | default(false) or
-    (developer_analysis_tool_marker.content | default('') | b64decode | trim) !=
+    developer_analysis_tools_marker.failed | default(false) or
+    (developer_analysis_tools_marker.content | default('') | b64decode | trim) !=
     (developer_analysis_tool.module ~ "@" ~ developer_analysis_tool.version)
 
 - name: Record ownership and source for {{ developer_analysis_tool.command }}
@@ -29,6 +29,6 @@
     group: root
     mode: "0644"
   when: >-
-    developer_analysis_tool_marker.failed | default(false) or
-    (developer_analysis_tool_marker.content | default('') | b64decode | trim) !=
+    developer_analysis_tools_marker.failed | default(false) or
+    (developer_analysis_tools_marker.content | default('') | b64decode | trim) !=
     (developer_analysis_tool.module ~ "@" ~ developer_analysis_tool.version)

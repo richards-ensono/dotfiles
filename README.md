@@ -11,6 +11,8 @@ Provisioning pinning boundary: Ansible role inputs own exact versions, immutable
 
 ## Install
 
+Ensure Node.js is already on PATH before running `chezmoi apply` (including `init --apply`): the preservation-aware Pi settings hook requires it. The hook fails visibly rather than discarding existing settings when prerequisites or validation are missing.
+
 ### Windows
 
 ```powershell
@@ -43,7 +45,11 @@ For broader validation, use the repository tasks and helper scripts:
 
 - `.vscode/test-dotfiles.sh` for Docker-based Chezmoi rendering and doctor checks.
 - `.vscode/test-ansible-idempotence.sh` for a two-pass Docker Ansible apply.
-- `yamllint .`, `ansible-lint playbook.yml`, and shell linting for repo scripts.
+- `yamllint .`, `cd scripts/ansible && ansible-lint`, and shell linting for repo scripts.
+- [Provisioning regression tests](scripts/ansible/tests/README.md) for offline rollback, immutable-source, and cross-platform Pi/rendering checks.
+- `.github/workflows/ci.yml` runs lint/regressions on PRs and schedules the broader two-pass provisioning check.
+
+Install the local validation hook with `pre-commit install` and run `pre-commit run --all-files` before committing. Node.js is required for the Pi settings merge hook and isolated template tests.
 
 ## Documentation
 

@@ -1,0 +1,10 @@
+# Keep linted sources portable between Windows and Linux checkouts.
+*.yml text eol=lf
+*.yaml text eol=lf
+*.sh text eol=lf
+*.tmpl text eol=lf
+.pre-commit-config.yaml text eol=lf
+.yamllint text eol=lf
+dot_bashrc text eol=lf
+dot_profile text eol=lf
+dot_config/shell_common text eol=lf
