@@ -23,7 +23,9 @@ repos:
         types: [shell]
       - id: chezmoi-template-check
         name: Check chezmoi templates
-        entry: bash -c 'for f in "$@"; do chezmoi execute-template < "$f" > /dev/null || exit 1; done' --
+        # Render the complete source using an isolated config/destination,
+        # rather than accidentally resolving includes from the user's source.
+        entry: node scripts/ansible/tests/test-render.cjs
         language: system
         files: \.tmpl$
-        pass_filenames: true
+        pass_filenames: false

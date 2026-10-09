@@ -1,0 +1,79 @@
+#!/usr/bin/env node
+
+// Adapted from RichardSlater/dotfiles 38b2df5. Only the fragment's keys are
+// owned by Chezmoi; never log settings content or touch auth.json.
+const fs = require("node:fs");
+const path = require("node:path");
+const crypto = require("node:crypto");
+
+const ownedSettings = {{ include ".chezmoitemplates/pi/settings.json" | quote }};
+const destination = {{ .chezmoi.destDir | quote }};
+const agentDir = path.join(destination, ".pi", "agent");
+const settingsPath = path.join(agentDir, "settings.json");
+
+function parseObject(json, source) {
+  let value;
+  try {
+    value = JSON.parse(json);
+  } catch {
+    // JSON parser diagnostics can contain private settings values.
+    throw new Error(`${source} is not valid JSON`);
+  }
+  if (value === null || Array.isArray(value) || typeof value !== "object") {
+    throw new Error(`${source} must contain a JSON object`);
+  }
+  if (value.subagents !== undefined &&
+      (value.subagents === null || Array.isArray(value.subagents) ||
+       typeof value.subagents !== "object")) {
+    throw new Error(`${source}.subagents must contain a JSON object`);
+  }
+  return value;
+}
+
+let temporaryPath;
+try {
+  for (const directory of [path.join(destination, ".pi"), agentDir]) {
+    try {
+      if (!fs.lstatSync(directory).isDirectory()) {
+        throw new Error("Pi settings parent must be a real directory");
+      }
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
+  }
+  let existingText;
+  try {
+    const stat = fs.lstatSync(settingsPath);
+    if (!stat.isFile()) throw new Error("Pi settings must be a regular file");
+    existingText = fs.readFileSync(settingsPath, "utf8");
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+  }
+  const existing = parseObject(existingText ?? "{}", "Existing Pi settings");
+  const managed = parseObject(ownedSettings, "Managed Pi settings fragment");
+  const merged = { ...existing, ...managed };
+  if (managed.subagents !== undefined) {
+    merged.subagents = { ...existing.subagents, ...managed.subagents };
+  }
+  const output = `${JSON.stringify(merged, null, 2)}\n`;
+  if (existingText !== output) {
+    fs.mkdirSync(agentDir, { recursive: true, mode: 0o700 });
+    temporaryPath = path.join(agentDir, `.settings.json.chezmoi-${crypto.randomUUID()}`);
+    fs.writeFileSync(temporaryPath, output, { encoding: "utf8", mode: 0o600, flag: "wx" });
+    let currentText;
+    try {
+      if (!fs.lstatSync(settingsPath).isFile()) throw new Error("Pi settings changed type");
+      currentText = fs.readFileSync(settingsPath, "utf8");
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
+    if (currentText !== existingText) throw new Error("Pi settings changed during synchronization");
+    fs.renameSync(temporaryPath, settingsPath);
+    temporaryPath = undefined;
+  }
+} catch (error) {
+  if (temporaryPath) fs.rmSync(temporaryPath, { force: true });
+  // Report the error class, not OS/parser diagnostics which can embed data.
+  console.error(`Pi settings synchronization failed (${error.code ?? error.name}).`);
+  process.exitCode = 1;
+}
