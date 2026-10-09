@@ -1,3 +1,5 @@
+__pycache__/
+scripts/ansible/.ansible/
 .github/prompts/opsx-*
 .github/skills/openspec-*
 .pi/*

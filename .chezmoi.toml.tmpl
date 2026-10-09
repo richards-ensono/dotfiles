@@ -10,6 +10,11 @@
     args = ["-d"]
 {{ end }}
 
+# The Pi settings hook requires Node.js on both supported platforms.
+[interpreters.js]
+    command = "node"
+    args = []
+
 [data]
     email = "richard.slater@ensono.com"
     name = "Richard Slater"

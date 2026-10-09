@@ -7,73 +7,93 @@ name: CI
   pull_request:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1"
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  pre-commit:
-    name: Pre-commit checks
+  lint-and-regressions:
+    name: Lint, syntax and offline provisioning regressions
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v7.0.1
-
-      - name: Set up Python
-        uses: actions/setup-python@v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          python-version: "3.14"
-
-      - name: Install system linters
-        env:
-          CHEZMOI_VERSION: "2.72.1"
-          CHEZMOI_SHA256: "168063d2bbde78522751b27d0c523d41c612640c5b568d156d20a50240c827ba"
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+      - name: Install validation tools
         run: |
           sudo apt-get update
-          sudo apt-get install --yes shellcheck
-          curl --fail --location --silent --show-error \
-            --output chezmoi.deb \
-            "https://github.com/twpayne/chezmoi/releases/download/v${CHEZMOI_VERSION}/chezmoi_${CHEZMOI_VERSION}_linux_amd64.deb"
-          echo "${CHEZMOI_SHA256}  chezmoi.deb" | sha256sum --check --strict
-          sudo dpkg --install chezmoi.deb
-          rm chezmoi.deb
-
-      - name: Install pre-commit
-        run: python -m pip install --disable-pip-version-check pre-commit==4.6.2
-
-      - name: Run configured checks
-        run: pre-commit run --all-files --show-diff-on-failure
-
-  ansible:
-    name: Ansible validation
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v7.0.1
-
-      - name: Set up Python
-        uses: actions/setup-python@v7.0.0
-        with:
-          python-version: "3.14"
-
-      - name: Install Ansible tooling
-        run: |
-          python -m pip install --disable-pip-version-check \
-            ansible==14.3.1 \
-            ansible-lint==26.8.0
-
-      - name: Install Ansible Galaxy requirements
+          sudo apt-get install -y shellcheck
+          python -m pip install ansible-core==2.21.5 ansible-lint==26.9.0 yamllint==1.38.0 pre-commit==4.6.2
+          bash scripts/ansible/tests/install-chezmoi.sh
+      - name: Install existing Galaxy requirements
         working-directory: scripts/ansible
         run: ansible-galaxy install -r requirements.yml
-
-      - name: Check playbook syntax
+      - name: Run pre-commit and YAML validation
+        run: |
+          pre-commit run --all-files --show-diff-on-failure
+          yamllint --strict .
+          shellcheck dot_bashrc dot_profile dot_config/shell_common .vscode/*.sh scripts/ansible/*.sh scripts/ansible/tests/*.sh
+      - name: Validate Ansible
         working-directory: scripts/ansible
-        run: ansible-playbook playbook.yml -i inventory/hosts.yml --syntax-check
+        run: |
+          ansible-playbook playbook.yml -i inventory/hosts.yml --syntax-check
+          ansible-lint
+      - name: Run source validators and their regression tests
+        run: |
+          python -m unittest discover -s scripts/ansible/tests -p 'test_source*.py'
+          python scripts/ansible/tests/validate_nvim_lock.py
+          python scripts/ansible/tests/validate_podman_sources.py
+          python scripts/ansible/tests/validate_podman_network_helpers.py
+          python -m unittest discover -s scripts/tests -v
+      - name: Run offline installation failure and idempotence tests
+        run: bash scripts/ansible/tests/test-staged-installers.sh
 
-      - name: Lint Podman role
-        working-directory: scripts/ansible
-        run: ansible-lint roles/podman
+  chezmoi-and-pi:
+    name: Chezmoi and Pi (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+      - name: Install verified Chezmoi
+        shell: bash
+        run: bash scripts/ansible/tests/install-chezmoi.sh
+      - name: Test Pi settings merge
+        run: node --test scripts/ansible/tests/pi-settings.test.cjs
+      - name: Validate isolated rendering and actual hook execution
+        run: node scripts/ansible/tests/test-render.cjs
 
-      - name: Run focused Podman provisioning checks
-        working-directory: scripts/ansible
-        run: python3 tests/validate_podman_network_helpers.py
+  ansible-idempotence:
+    name: Full provisioning idempotence (scheduled/manual)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Run isolated two-pass provisioning
+        run: >-
+          docker run --rm
+          -v "$GITHUB_WORKSPACE:/dotfiles:ro"
+          docker.io/library/debian:bookworm
+          bash /dotfiles/.vscode/test-ansible-idempotence.sh

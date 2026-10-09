@@ -31,7 +31,8 @@
         state: present
 
 - name: Check if Neovim is already installed
-  ansible.builtin.command: nvim --version
+  ansible.builtin.command:
+    argv: ["{{ neovim_install_dir }}/bin/nvim", --version]
   register: neovim_installed
   changed_when: false
   failed_when: false
@@ -41,7 +42,7 @@
     repo: "{{ neovim_repo }}"
     dest: "{{ neovim_dest }}"
     depth: 1
-    version: "{{ neovim_version }}"
+    version: "{{ neovim_source_commit }}"
     update: true
     # Release tags such as `stable` are intentionally mutable upstream; force
     # their local refs to update so an unrelated stale tag cannot block the
@@ -49,8 +50,21 @@
     force: true
   register: neovim_git
 
+- name: Read checked-out Neovim commit
+  ansible.builtin.command:
+    argv: [git, rev-parse, HEAD]
+    chdir: "{{ neovim_dest }}"
+  register: neovim_checked_out_commit
+  changed_when: false
+
+- name: Verify checked-out Neovim commit
+  ansible.builtin.assert:
+    that:
+      - (neovim_checked_out_commit.stdout | trim) == neovim_source_commit
+
 - name: Check Neovim clean startup
-  ansible.builtin.command: nvim --clean --headless +qa
+  ansible.builtin.command:
+    argv: ["{{ neovim_install_dir }}/bin/nvim", --clean, --headless, +qa]
   register: neovim_clean_startup
   changed_when: false
   failed_when: false
@@ -61,7 +75,8 @@
     neovim_needs_build: >-
       {{ neovim_git.changed or neovim_installed.rc != 0
          or neovim_clean_startup.rc != 0
-         or (neovim_clean_startup.stderr | length > 0) }}
+         or (neovim_clean_startup.stderr | length > 0)
+         or ('NVIM ' ~ neovim_version) not in neovim_installed.stdout }}
 
 - name: Clean Neovim build directory if source changed
   ansible.builtin.command:
@@ -74,7 +89,7 @@
 
 - name: Build Neovim
   ansible.builtin.command:
-    cmd: "make CMAKE_BUILD_TYPE=Release"
+    argv: [make, CMAKE_BUILD_TYPE=Release, "CMAKE_EXTRA_FLAGS=-DCMAKE_INSTALL_PREFIX={{ neovim_install_dir }}"]
     chdir: "{{ neovim_dest }}"
   register: neovim_build
   when: neovim_needs_build
@@ -97,28 +112,17 @@
 
     - name: Retry Neovim build
       ansible.builtin.command:
-        cmd: "make CMAKE_BUILD_TYPE=Release"
+        argv: [make, CMAKE_BUILD_TYPE=Release, "CMAKE_EXTRA_FLAGS=-DCMAKE_INSTALL_PREFIX={{ neovim_install_dir }}"]
         chdir: "{{ neovim_dest }}"
       register: neovim_retry_build
       changed_when: neovim_retry_build.rc == 0
-- name: Remove stale Neovim runtime files
-  ansible.builtin.file:
-    path: "{{ neovim_install_dir }}/share/nvim/runtime"
-    state: absent
-  become: true
+- name: Stage and activate Neovim with rollback
+  ansible.builtin.include_tasks: install-staged.yml
   when: neovim_needs_build
-
-- name: Install Neovim
-  ansible.builtin.command:
-    cmd: "make install"
-    chdir: "{{ neovim_dest }}"
-  become: true
-  when: neovim_needs_build
-  changed_when: neovim_install.rc == 0
-  register: neovim_install
 
 - name: Verify Neovim clean startup
-  ansible.builtin.command: nvim --clean --headless +qa
+  ansible.builtin.command:
+    argv: ["{{ neovim_install_dir }}/bin/nvim", --clean, --headless, +qa]
   register: neovim_clean_startup_result
   changed_when: false
   failed_when: >-
@@ -126,7 +130,8 @@
     or (neovim_clean_startup_result.stderr | length > 0)
 
 - name: Verify Neovim installation
-  ansible.builtin.command: "nvim --version"
+  ansible.builtin.command:
+    argv: ["{{ neovim_install_dir }}/bin/nvim", --version]
   register: neovim_version_result
   changed_when: false
 

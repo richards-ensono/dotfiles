@@ -12,13 +12,24 @@ This is the review boundary for externally sourced provisioning inputs. Role var
 | Node.js | Official Node.js release index, current non-prerelease LTS `v24.20.0` (`Krypton`) | nvm-managed Node.js/npm runtime | `SHASUMS256.txt` locally verified the Linux x64 archive: SHA-256 `2f2c0da162318f0de47665410c7c8c2ed3d36c8f3105de4bbc61176c70a7cbf2`; dependent tasks use the exact `~/.nvm/versions/node/v24.20.0/bin/npm` path rather than OS Node/npm |
 | GitHub Copilot CLI | Official npm registry, `@github/copilot@1.0.82` | npm package tarball | Invokes the nvm-managed npm executable; npm verifies registry `dist.integrity` (`sha512-+mDIwBO3dCpL3k2rVLc4+1tFzqcVBTJNA/0co+okEpmCgcHjaz91Cqq7++pJKN5yJQuGC6bKangm7PSoheI1Xw==`); the package declares no Node engine restriction and is compatible with selected Node 24 LTS |
 | GitHub CLI | `cli/cli` release `v2.100.0`, resolved to `45437bc7eeeb3359bbfddd1742f79de7652fd3e2` | source build | Git-source exception: official lightweight tag resolves to the configured immutable commit; build dependencies/modules remain publisher/package-manager owned |
-| Podman | `containers/podman` source tag `v6.1.1` | source build | Git tag; `containers/image` policy and registries files use immutable commit `08ce6b4207e7b151ea1c2830cdb1d4473cfd12aa`; Netavark and Aardvark-DNS `2.1.0` Linux x64 assets have configured SHA-256 values |
+| Podman | `containers/podman` source tag `v6.1.1` | source build | Checkout verified against full commit `8303f2e25b675ea7f82099d615c60969aec15870`;  `containers/image` policy and registries files use immutable commit `08ce6b4207e7b151ea1c2830cdb1d4473cfd12aa`; Netavark and Aardvark-DNS `2.1.0` Linux x64 assets have configured SHA-256 values |
 | PowerShell | Microsoft, GitHub release `v7.6.4` | Debian amd64/arm64 package | Exact release URL; no authoritative checksum was supplied by the verified publisher metadata, so the role records a bounded TLS/source exception |
 | tmux | upstream GitHub release `3.7c` | `tmux-3.7c.tar.gz` source tarball | GitHub release-asset SHA-256, locally verified: `7c60cae9a0e25288e2e24750aafc9e8800fc7fd4555e447e1b29ee4201cfb3bf` |
-| nvm | `nvm-sh/nvm` Git ref `v0.40.6` | `install.sh` at the versioned ref; installs Node.js LTS `v24.19.0` | Upstream does not publish an authoritative installer checksum; TLS plus immutable ref is the documented exception. The role asserts the exact nvm-managed Node.js and npm executables before dependent roles run |
+| nvm | `nvm-sh/nvm` Git ref `v0.40.6` | `install.sh` at the versioned ref; installs Node.js LTS `v24.20.0` | Upstream does not publish an authoritative installer checksum; TLS plus immutable ref is the documented exception. The role asserts the exact nvm-managed Node.js and npm executables before dependent roles run |
 | pnpm | npm registry, stable `12.3.4` | official installer with `PNPM_VERSION=12.3.4` via `https://get.pnpm.io/install.sh` | Registry selection evidence: exact package metadata provides `dist.integrity` `sha512-lhqkH7B32joEpEHZ+OFevAyW2o73ELLrZ7+e58sGEOq9SPH9hfUc/+c4RnhfoPh8VqOocqHYk/hEZ0G1zORUVw==`; installer exception: this endpoint has no independently published authoritative script checksum, so its content cannot meet the normal checksum gate. A maintainer-approved exception retains official HTTPS, an exact `PNPM_VERSION`, and installed-version verification as compensating controls; these do not establish installer-content integrity. Revisit when pnpm publishes an authoritative checksum or the role moves to a checksum-backed distribution. |
 | fzf | `junegunn/fzf` Git tag `v0.74.3`, resolved to `15f64c492a08f0840b81540c7d1de35737448086` | source build | Git-source exception: official annotated tag resolves to the configured immutable commit |
 | Neovim | `neovim/neovim` Git tag `v0.12.5`, resolved to `5885a30e1e1225349079e7a1c4a3848aa8e43e42` | source build | Git-source exception: official annotated tag resolves to the configured immutable commit |
+
+## CI-only validation inputs
+
+These inputs do not change provisioned component versions. Validation uses Python 3.13.
+
+- `actions/checkout` v7.0.1: `3d3c42e5aac5ba805825da76410c181273ba90b1`.
+- `actions/setup-python` v7.0.0: `5fda3b95a4ea91299a34e894583c3862153e4b97`.
+- `actions/setup-node` v7.1.0: `949feb2413d6458794dcd2491c4babbbce0c15c1`.
+- Validation tools: ansible-core 2.21.5, ansible-lint 26.9.0, yamllint 1.38.0, pre-commit 4.6.2; ShellCheck remains distribution-managed.
+- Chezmoi v2.73.0: release metadata SHA-256 `b597729b687af4488a848240134cb633de8ca0f04e0d26d48f400ee2ac338ffa` for the Linux amd64 tarball; `266938399108028a5b6dc7a137026e3ead747304122e5fe381d5396e496620f6` for the Windows amd64 ZIP.
+- The scheduled/manual integration image remains `debian:bookworm`, intentionally distribution-managed rather than claimed to be immutable.
 
 ## Package/module and configuration sources
 

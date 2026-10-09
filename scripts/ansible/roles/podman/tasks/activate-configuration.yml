@@ -1,0 +1,13 @@
+---
+- name: Activate Podman configuration as a recovery unit
+  ansible.builtin.include_tasks: "{{ role_path }}/../../tasks/activate-staged.yml"
+  vars:
+    staged_installation_files:
+      - src: "{{ podman_configuration_stage.path }}/policy.json"
+        dest: "{{ podman_config_dir }}/policy.json"
+      - src: "{{ podman_configuration_stage.path }}/registries.conf"
+        dest: "{{ podman_config_dir }}/registries.conf"
+    staged_installation_verify_dir: "{{ podman_config_dir }}"
+    staged_installation_checks:
+      - argv: [python3, -m, json.tool, "{{ podman_config_dir }}/policy.json"]
+      - argv: [python3, -c, "import sys, tomllib; tomllib.load(open(sys.argv[1], 'rb'))", "{{ podman_config_dir }}/registries.conf"]

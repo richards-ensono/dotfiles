@@ -1,0 +1,47 @@
+---
+# Keep ancillary payloads from make install (rootlessport, Quadlet, man pages,
+# completions and units) rather than silently dropping existing capabilities.
+- name: Inspect complete staged Podman payload
+  ansible.builtin.find:
+    paths: "{{ podman_stage.path }}"
+    recurse: true
+    file_type: any
+  register: podman_staged_payload
+
+- name: Initialize Podman activation manifest
+  ansible.builtin.set_fact:
+    podman_activation_files: []
+
+- name: Build Podman activation manifest
+  ansible.builtin.set_fact:
+    podman_activation_files: >-
+      {{ podman_activation_files + [{'src': item.path,
+         'dest': item.path | regex_replace('^' ~ (podman_stage.path | regex_escape), ''),
+         'allow_symlink': item.islnk and (item.path | basename) != 'podman'}] }}
+  loop: "{{ podman_staged_payload.files | sort(attribute='path') }}"
+  when: item.isreg or item.islnk
+  loop_control:
+    label: "{{ item.path }}"
+
+- name: Require the staged Podman executable
+  ansible.builtin.assert:
+    that:
+      - (podman_activation_files | selectattr('dest', 'equalto', podman_install_dir ~ '/bin/podman') | list | length) == 1
+
+- name: Ensure Podman payload destination directories exist
+  ansible.builtin.file:
+    path: "{{ item.dest | dirname }}"
+    state: directory
+    mode: "0755"
+  loop: "{{ podman_activation_files }}"
+  loop_control:
+    label: "{{ item.dest }}"
+
+- name: Activate complete Podman payload with rollback
+  ansible.builtin.include_tasks: "{{ role_path }}/../../tasks/activate-staged.yml"
+  vars:
+    staged_installation_files: "{{ podman_activation_files }}"
+    staged_installation_verify_dir: "{{ podman_install_dir }}"
+    staged_installation_checks:
+      - argv: ["{{ podman_install_dir }}/bin/podman", --version]
+        pattern: "^podman version {{ podman_expected_version | regex_escape }}\\s*$"

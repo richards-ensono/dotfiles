@@ -3,6 +3,8 @@ podman_version: "v6.1.1"
 podman_build_dir: "/tmp/podman_build"
 podman_network_handler: "pasta"
 podman_runtime: "crun"
+podman_install_dir: "/usr/local"
+podman_config_dir: "/etc/containers"
 podman_compose_package: "podman-compose"
 # containers/image v5.36.0 resolves to this reviewed immutable commit.
 podman_container_image_commit: "08ce6b4207e7b151ea1c2830cdb1d4473cfd12aa"

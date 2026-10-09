@@ -34,6 +34,14 @@ Pi owns the mutable contents of `~/.pi/agent`, including authentication and trus
 
 `.chezmoitemplates/pi/settings.json` is the declarative Pi fragment owned by this repository. It is restricted to model preferences (`defaultProvider`, `defaultModel`, `defaultThinkingLevel`, `enabledModels`, and `subagents.defaultModel`) and the extension `packages` declaration. `run_after_merge-pi-settings.js.tmpl` overlays only those keys into `~/.pi/agent/settings.json` after each apply, preserving all other Pi settings. Add a key to this fragment only when it is a stable, repository-owned preference; do not add Pi-generated state.
 
+The settings hook uses the explicit Chezmoi destination, validates JSON and object shapes, rejects symlink destinations and detected concurrent edits, and writes through an exclusive mode-0600 temporary file and atomic rename. It never reads or writes Pi authentication files.
+
+### Recoverable installations
+
+.NET stages its verified SDK directory on the destination filesystem, retaining existing user-installed tools and side-by-side SDK state before overlaying the downloaded SDK. Neovim stages the complete `make install` output and replaces its binary and runtime as a recovery unit, retaining ancillary manuals. Podman stages its complete installation payload (including rootlessport/Quadlet where produced) and independently validates downloaded JSON/TOML configuration before replacement. Verified Netavark/Aardvark-DNS replacements and the Compose provider from main are retained.
+
+The internal `scripts/ansible/tasks/activate-staged.yml` transaction preserves destinations as `.ansible-backup`, refuses pre-existing recovery paths, verifies activated output and restores successfully preserved files on failure. Cleanup of backups happens only after verification. If recovery itself fails, do not delete backup paths: they may be the only surviving installation. This is recoverable activation, not a filesystem-wide atomic swap across multiple files; avoid concurrent provisioning or using affected programs during replacement.
+
 ### Shell startup ownership
 
 - `dot_profile` sources `dot_bashrc` for bash login shells and otherwise sources `dot_config/shell_common`.
@@ -126,11 +134,13 @@ The lowest-cost checks already available in the repository are:
 - the Docker dry run at `.vscode/test-dotfiles.sh`
 - the Docker Ansible idempotence run at `.vscode/test-ansible-idempotence.sh`
 - `cd scripts/ansible && ansible-galaxy install -r requirements.yml && ansible-playbook playbook.yml --syntax-check`
-- `ansible-lint playbook.yml` with the repository baseline in `.ansible-lint.yml`
+- `cd scripts/ansible && ansible-lint` with the production profile in `.ansible-lint.yml`, including dynamically included task fragments
 - repo `yamllint`
 - shell linting for the shared shell files and helper scripts
 
-These checks should be run after architecture or provisioning changes before broader refactors are attempted.
+These checks should be run after architecture or provisioning changes before broader refactors are attempted. The GitHub workflow runs static validation, offline installer regressions, and isolated Chezmoi/Pi checks on Linux and Windows. Full provisioning idempotence is scheduled/manual. See [provisioning regression tests](../scripts/ansible/tests/README.md) for commands and integration limitations. Repository-only workflow, specification and test files are excluded from Chezmoi deployment.
+
+The public `developer_analysis_tools` inventory input intentionally retains its established name, with a narrow documented role-prefix lint exception. Internal cleanup/networking/tool-install registers use role-prefixed names.
 
 ## Confirmation items intentionally deferred
 

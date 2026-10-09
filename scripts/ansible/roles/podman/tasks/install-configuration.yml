@@ -1,0 +1,83 @@
+---
+- name: Reset Podman configuration staging state
+  ansible.builtin.set_fact:
+    podman_configuration_stage: {}
+
+# Upstream does not publish individual file checksums. The existing reviewed
+# containers/image commit and TLS remain the documented integrity boundary.
+- name: Validate and activate Podman configuration
+  become: true
+  block:
+    - name: Create temporary Podman configuration staging directory
+      ansible.builtin.tempfile:
+        path: "{{ podman_config_dir }}"
+        state: directory
+        prefix: .podman-config-
+      register: podman_configuration_stage
+      changed_when: false
+
+    - name: Download reviewed Podman configuration into staging
+      ansible.builtin.get_url:
+        url: "{{ item.url }}"
+        dest: "{{ podman_configuration_stage.path }}/{{ item.name }}"
+        mode: "0644"
+      loop:
+        - name: policy.json
+          url: "{{ podman_policy_source_url }}"
+        - name: registries.conf
+          url: "{{ podman_registries_source_url }}"
+      changed_when: false
+
+    - name: Validate staged Podman JSON and TOML
+      ansible.builtin.command:
+        argv: "{{ item }}"
+      loop:
+        - [python3, -m, json.tool, "{{ podman_configuration_stage.path }}/policy.json"]
+        - [python3, -c, "import sys, tomllib; tomllib.load(open(sys.argv[1], 'rb'))", "{{ podman_configuration_stage.path }}/registries.conf"]
+      changed_when: false
+
+    - name: Inspect staged Podman configuration
+      ansible.builtin.stat:
+        path: "{{ podman_configuration_stage.path }}/{{ item }}"
+        checksum_algorithm: sha256
+      loop: [policy.json, registries.conf]
+      register: podman_staged_configuration
+
+    - name: Inspect current Podman configuration
+      ansible.builtin.stat:
+        path: "{{ podman_config_dir }}/{{ item }}"
+        checksum_algorithm: sha256
+        follow: false
+      loop: [policy.json, registries.conf]
+      register: podman_existing_configuration
+
+    - name: Reject empty staged configuration or symlink destinations
+      ansible.builtin.assert:
+        that:
+          - item.stat.size > 0
+          - not (podman_existing_configuration.results[index].stat.islnk | default(false))
+      loop: "{{ podman_staged_configuration.results }}"
+      loop_control:
+        index_var: index
+        label: "{{ item.item }}"
+
+    - name: Activate validated Podman configuration with rollback
+      ansible.builtin.include_tasks: activate-configuration.yml
+      when: >-
+        podman_existing_configuration.results[0].stat.checksum | default('') != podman_staged_configuration.results[0].stat.checksum
+        or podman_existing_configuration.results[1].stat.checksum | default('') != podman_staged_configuration.results[1].stat.checksum
+
+    - name: Enforce Podman configuration permissions
+      ansible.builtin.file:
+        path: "{{ podman_config_dir }}/{{ item }}"
+        mode: "0644"
+      loop: [policy.json, registries.conf]
+
+  always:
+    - name: Remove Podman configuration staging directory
+      become: true
+      ansible.builtin.file:
+        path: "{{ podman_configuration_stage.path }}"
+        state: absent
+      when: podman_configuration_stage.path is defined
+      changed_when: false

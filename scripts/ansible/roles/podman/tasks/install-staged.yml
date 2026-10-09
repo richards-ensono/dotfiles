@@ -1,0 +1,50 @@
+---
+- name: Reset Podman binary staging state
+  ansible.builtin.set_fact:
+    podman_stage: {}
+
+- name: Build and stage Podman without altering the active executable
+  become: true
+  block:
+    - name: Build exact Podman source
+      ansible.builtin.command:
+        argv: [make, "BUILDTAGS={{ podman_build_tags }}", "PREFIX={{ podman_install_dir }}"]
+        chdir: "{{ podman_build_dir }}"
+      environment:
+        PATH: "{{ ansible_env.PATH }}:/usr/local/go/bin"
+      changed_when: true
+
+    - name: Create Podman staging directory on the install filesystem
+      ansible.builtin.tempfile:
+        path: "{{ podman_install_dir }}"
+        state: directory
+        prefix: .podman-stage-
+      register: podman_stage
+
+    - name: Install Podman build into staging only
+      ansible.builtin.command:
+        argv: [make, install, "PREFIX={{ podman_install_dir }}", "DESTDIR={{ podman_stage.path }}"]
+        chdir: "{{ podman_build_dir }}"
+      environment:
+        PATH: "{{ ansible_env.PATH }}:/usr/local/go/bin"
+      changed_when: true
+
+    - name: Verify staged Podman version
+      ansible.builtin.command:
+        argv: ["{{ podman_stage.path }}{{ podman_install_dir }}/bin/podman", --version]
+      register: podman_staged_version
+      changed_when: false
+      failed_when: >-
+        podman_staged_version.rc != 0 or
+        (podman_staged_version.stdout | trim) != ('podman version ' ~ podman_expected_version)
+
+    - name: Activate verified Podman binary with rollback
+      ansible.builtin.include_tasks: activate-staged.yml
+
+  always:
+    - name: Remove Podman binary staging directory
+      become: true
+      ansible.builtin.file:
+        path: "{{ podman_stage.path }}"
+        state: absent
+      when: podman_stage.path is defined

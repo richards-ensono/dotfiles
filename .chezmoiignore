@@ -1,33 +1,43 @@
-/docs
-/openspec
+docs
+docs/**
+openspec
+openspec/**
+.github
+.github/**
+scripts/ansible/tests
+scripts/ansible/tests/**
+scripts/tests
+scripts/tests/**
+# Pi settings are merged by the run-after hook, not owned as a whole file.
+.pi/agent/settings.json
 
 # ignore if NOT Linux
 {{- if ne .chezmoi.os "linux" }}
-/.config/nvim
-/.config/tmux
-/.tmux.conf
-/.config/zsh_aliases
-/.local
-/.profile
-/.bashrc
-/.zshrc
+.config/nvim
+.config/tmux
+.tmux.conf
+.config/zsh_aliases
+.local
+.profile
+.bashrc
+.zshrc
 {{- end }}
 
 {{- if not ( and (eq .chezmoi.os "linux") (.chezmoi.kernel.osrelease | lower | contains "microsoft") ) }}
-/.local/bin/gpg
-/.local/bin/ssh
-/.local/bin/ssh-add
-/.local/bin/scp
+.local/bin/gpg
+.local/bin/ssh
+.local/bin/ssh-add
+.local/bin/scp
 {{- end }}
 
 {{- if not ( and (eq .chezmoi.os "linux") ( or (eq .chezmoi.osRelease.id "debian") (eq .chezmoi.osRelease.id "ubuntu") ) ) }}
-/scripts/debian
+scripts/debian
 {{- end }}
 
 # ignore if NOT Windows
 {{- if ne .chezmoi.os "windows" }}
-/Documents
-/AppData
-/Pictures
-/nvim
+Documents
+AppData
+Pictures
+nvim
 {{- end }}

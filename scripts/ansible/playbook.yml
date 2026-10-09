@@ -116,6 +116,9 @@
 
     - name: Update all pi components
       ansible.builtin.command: pi update --all
+      # The updater has no stable machine-readable no-change result; report
+      # this mutating operation conservatively rather than hide possible updates.
+      changed_when: true
       when: pi_check.rc == 0
 
 - name: Update Neovim Plugins (LazyVim)

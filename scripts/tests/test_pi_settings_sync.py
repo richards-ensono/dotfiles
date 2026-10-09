@@ -7,6 +7,7 @@ Every merge runs with a synthetic temporary HOME, never the operator's home.
 """
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -46,7 +47,11 @@ class PiSettingsSyncTests(unittest.TestCase):
         self.agent = self.home / ".pi/agent"
         self.settings = self.agent / "settings.json"
         self.script = self.root / "merge.js"
-        self.script.write_text(self.rendered, encoding="utf-8")
+        # The hook follows Chezmoi's explicit destination, not the process HOME.
+        rendered = re.sub(r"^const destination = .*;$",
+                          lambda _: f"const destination = {json.dumps(str(self.home))};",
+                          self.rendered, count=1, flags=re.MULTILINE)
+        self.script.write_text(rendered, encoding="utf-8")
         self.env = {"HOME": str(self.home), "PATH": os.environ.get("PATH", "")}
 
     def write_settings(self, value):
@@ -159,7 +164,7 @@ class PiSettingsSyncTests(unittest.TestCase):
                 before = self.settings.stat()
                 result = self.run_merge()
                 self.assertNotEqual(result.returncode, 0)
-                self.assertIn("Pi settings synchronization failed:", result.stderr)
+                self.assertIn("Pi settings synchronization failed", result.stderr)
                 self.assertEqual(self.settings.read_bytes(), invalid)
                 after = self.settings.stat()
                 self.assertEqual(after.st_mode, before.st_mode)

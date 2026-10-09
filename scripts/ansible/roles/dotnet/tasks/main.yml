@@ -7,52 +7,25 @@
       No verified .NET {{ dotnet_sdk_version }} Linux asset is configured for
       {{ ansible_architecture }}.
 
-- name: Check if exact .NET SDK is already installed
-  ansible.builtin.command: "{{ dotnet_install_dir }}/dotnet --list-sdks"
+- name: Check if exact .NET SDK is active
+  ansible.builtin.command:
+    argv: ["{{ dotnet_install_dir }}/dotnet", --version]
+    chdir: "{{ dotnet_install_dir | dirname }}"
   register: dotnet_check
   failed_when: false
   changed_when: false
 
-- name: Create temporary directory for .NET SDK download
-  ansible.builtin.tempfile:
-    state: directory
-    suffix: dotnet_sdk
-  register: dotnet_temp_dir
-  when: dotnet_check.rc != 0 or dotnet_sdk_version not in dotnet_check.stdout
-
-- name: Ensure .NET install directory exists
-  ansible.builtin.file:
-    path: "{{ dotnet_install_dir }}"
-    state: directory
-    mode: "0755"
-  when: dotnet_check.rc != 0 or dotnet_sdk_version not in dotnet_check.stdout
-
-- name: Download exact .NET SDK asset
-  ansible.builtin.get_url:
-    url: "{{ dotnet_download_url }}"
-    dest: "{{ dotnet_temp_dir.path }}/dotnet-sdk.tar.gz"
-    checksum: "{{ dotnet_checksum }}"
-    mode: "0644"
-  when: dotnet_check.rc != 0 or dotnet_sdk_version not in dotnet_check.stdout
-
-- name: Extract exact .NET SDK asset
-  ansible.builtin.unarchive:
-    src: "{{ dotnet_temp_dir.path }}/dotnet-sdk.tar.gz"
-    dest: "{{ dotnet_install_dir }}"
-    remote_src: true
-  when: dotnet_check.rc != 0 or dotnet_sdk_version not in dotnet_check.stdout
-
-- name: Clean up temporary .NET SDK directory
-  ansible.builtin.file:
-    path: "{{ dotnet_temp_dir.path }}"
-    state: absent
-  when: dotnet_temp_dir.path is defined
+- name: Stage and install exact .NET SDK
+  ansible.builtin.include_tasks: install-staged.yml
+  when: dotnet_check.rc != 0 or (dotnet_check.stdout | trim) != dotnet_sdk_version
 
 - name: Verify .NET installation
-  ansible.builtin.command: "{{ dotnet_install_dir }}/dotnet --version"
+  ansible.builtin.command:
+    argv: ["{{ dotnet_install_dir }}/dotnet", --version]
+    chdir: "{{ dotnet_install_dir }}"
   register: dotnet_verify
   changed_when: false
-  failed_when: dotnet_verify.stdout | trim != dotnet_sdk_version
+  failed_when: dotnet_verify.rc != 0 or (dotnet_verify.stdout | trim) != dotnet_sdk_version
 
 - name: Show .NET version
   ansible.builtin.debug:
