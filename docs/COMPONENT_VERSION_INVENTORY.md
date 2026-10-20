@@ -6,6 +6,7 @@ This is the review boundary for externally sourced provisioning inputs. Role var
 
 | Component | Publisher/source and selected version | Asset or package | Integrity |
 |:--|:--|:--|:--|
+| Go | Official [go.dev release metadata](https://go.dev/dl/?mode=json), `1.27.3` | `go1.27.3.linux-amd64.tar.gz` via `geerlingguy.go` | Publisher SHA-256, locally verified: `65efbc80fdc1fa2cd2631cad5b481777a68e8725f34e89f50fc6ac714e379b40`; role applies the `sha256:` prefix |
 | uv | Astral, GitHub release `0.12.9` | `uv-x86_64-unknown-linux-gnu.tar.gz` | Publisher `sha256.sum`, locally verified SHA-256 `ec7a99cd05e0cd7f80243f135ce1361c76835cb0ee60055d14d20eba8eba1460` |
 | Oh My Posh | Jan De Dobbeleer, GitHub release `v31.1.2` | `posh-linux-amd64` / `posh-linux-arm64` | Publisher `checksums.txt`, locally verified SHA-256 amd64 `f691e8913cf5abaf941a2f73da4e5df3ceb0d99e979451ae1734347b775d843e`; arm64 `f89022231e1d031f46a5f8e6254bee1dd871c328432c4f9d3a05c823fe1d26a1`; riscv64 explicitly unsupported |
 | .NET SDK | Microsoft official builds, `10.0.400` | versioned Linux x64/arm64 tarballs | SHA-512 x64 `1033977dd837150e0814cf0c5d5b17ceb63925fda7ba2158b47258a4bd7c048cf82eac3bc1166f3146f53124a3f5fba09db1de1260d2ce96399860303b404b48`; arm64 `a1b45da58e5591fff909a6126ac6bfc1ef9c12bc72c0625f7815e83a82be1a902317ee96926cbbf81324a45c6abf2ed8102a216d0507879cc166159af78d1b77` |
