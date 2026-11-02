@@ -7,7 +7,7 @@
 | Role | Selected input | Verification/source strategy |
 |:--|:--|:--|
 | `uv` | `0.12.4` | Official GitHub x86_64 GNU tarball, SHA-256 checked |
-| `copilot_cli` | `@github/copilot` `1.0.80` | Official npm package; npm registry integrity verification |
+| `copilot_cli` | `@github/copilot` `1.0.105` | Official npm package; npm registry integrity verification |
 | `oh_my_posh` | `v30.6.5` | Official Linux amd64/arm64 assets, architecture SHA-256 checked; riscv64 rejected |
 | `pwsh` | `7.6.4` | Official GitHub Debian asset; upstream checksum not available in the verified release metadata |
 | `gh` | `v2.97.0` | Official source repository tag |
